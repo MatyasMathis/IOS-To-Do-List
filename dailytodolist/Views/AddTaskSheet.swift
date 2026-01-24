@@ -2,60 +2,34 @@
 //  AddTaskSheet.swift
 //  dailytodolist
 //
-//  Purpose: Sheet view for creating new tasks
-//  Key responsibilities:
-//  - Provide form for entering task details
-//  - Handle title validation (non-empty)
-//  - Toggle between regular and recurring tasks
-//  - Category selection
+//  Purpose: Sheet for creating new tasks with notebook styling
+//  Design: Torn paper look, lined input, washi tape categories, sticky note button
 //
 
 import SwiftUI
 import SwiftData
 
-/// Sheet view for adding a new task
-///
-/// Presents a form with fields for:
-/// - Task title (required)
-/// - Category (optional)
-/// - Recurring toggle (daily repeat)
-///
-/// The sheet validates that the title is not empty before allowing
-/// the user to save the task.
+/// Sheet view for adding a new task with notebook styling
 struct AddTaskSheet: View {
 
     // MARK: - Environment
 
-    /// Used to dismiss the sheet after saving
     @Environment(\.dismiss) private var dismiss
-
-    /// SwiftData model context for database operations
     @Environment(\.modelContext) private var modelContext
 
     // MARK: - State
 
-    /// The title entered by the user
     @State private var title: String = ""
-
-    /// The category selected by the user
     @State private var category: String = ""
-
-    /// Whether this task should repeat daily
     @State private var isRecurring: Bool = false
-
-    /// Controls focus on the title field
     @FocusState private var isTitleFocused: Bool
 
     // MARK: - Constants
 
-    /// Available categories for tasks
-    /// These provide quick organization options for users
     private let categories = ["", "Work", "Personal", "Health", "Shopping", "Other"]
 
     // MARK: - Computed Properties
 
-    /// Validates that the form can be submitted
-    /// Currently only checks that title is not empty after trimming whitespace
     private var isFormValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -64,53 +38,125 @@ struct AddTaskSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // MARK: Task Details Section
-                Section {
-                    TextField("Task title", text: $title)
-                        .focused($isTitleFocused)
+            ZStack {
+                // Paper background
+                Color.paperCream.ignoresSafeArea()
 
-                    Picker("Category", selection: $category) {
-                        ForEach(categories, id: \.self) { category in
-                            Text(category.isEmpty ? "None" : category)
-                                .tag(category)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.xl) {
+                        // Prompt
+                        Text("What's on your mind?")
+                            .font(.handwrittenLabel)
+                            .foregroundStyle(Color.pencilGray)
+                            .padding(.top, Spacing.lg)
+
+                        // Lined text input
+                        VStack(spacing: 0) {
+                            TextField("", text: $title, axis: .vertical)
+                                .font(.taskTitle)
+                                .foregroundStyle(Color.inkBlack)
+                                .focused($isTitleFocused)
+                                .lineLimit(3...5)
+                                .padding(.vertical, Spacing.sm)
+
+                            // Ruled lines
+                            ForEach(0..<3, id: \.self) { _ in
+                                Rectangle()
+                                    .fill(Color.ruledLines)
+                                    .frame(height: 1)
+                                    .padding(.vertical, Spacing.md)
+                            }
                         }
-                    }
-                } header: {
-                    Text("Task Details")
-                }
 
-                // MARK: Recurring Section
-                Section {
-                    Toggle("Recurring Daily", isOn: $isRecurring)
-                } header: {
-                    Text("Schedule")
-                } footer: {
-                    Text(isRecurring
-                         ? "This task will reappear every day, even after completion."
-                         : "This task will disappear after you complete it.")
+                        // Category selector
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            Text("Tag it:")
+                                .font(.handwrittenLabel)
+                                .foregroundStyle(Color.pencilGray)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: Spacing.sm) {
+                                    ForEach(categories, id: \.self) { cat in
+                                        WashiTapeCategoryButton(
+                                            category: cat,
+                                            isSelected: category == cat
+                                        ) {
+                                            withAnimation(.spring(response: 0.3)) {
+                                                category = cat
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Frequency selector
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            Text("How often?")
+                                .font(.handwrittenLabel)
+                                .foregroundStyle(Color.pencilGray)
+
+                            HandDrawnRadio(
+                                isSelected: !isRecurring,
+                                label: "One-time task"
+                            ) {
+                                isRecurring = false
+                            }
+
+                            HandDrawnRadio(
+                                isSelected: isRecurring,
+                                label: "Every day (recurring)"
+                            ) {
+                                isRecurring = true
+                            }
+                        }
+
+                        Spacer(minLength: Spacing.xl)
+
+                        // Add button (sticky note style)
+                        StickyNoteButton(title: "Add to Today's List") {
+                            saveTask()
+                        }
+                        .opacity(isFormValid ? 1.0 : 0.5)
+                        .disabled(!isFormValid)
+                    }
+                    .padding(.horizontal, Spacing.lg)
                 }
             }
-            .navigationTitle("New Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // MARK: Cancel Button
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text("New Task")
+                            .font(.handwrittenHeader)
+                            .foregroundStyle(Color.inkBlack)
+
+                        // Double underline
+                        VStack(spacing: 2) {
+                            Rectangle()
+                                .fill(Color.inkBlack)
+                                .frame(width: 80, height: 1)
+                            Rectangle()
+                                .fill(Color.inkBlack)
+                                .frame(width: 80, height: 1)
+                        }
                     }
                 }
 
-                // MARK: Save Button
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        saveTask()
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.inkBlack)
+                            .padding(Spacing.sm)
                     }
-                    .disabled(!isFormValid)
                 }
             }
+            .toolbarBackground(Color.paperCream, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .onAppear {
-                // Auto-focus the title field when sheet appears
                 isTitleFocused = true
             }
         }
@@ -118,11 +164,13 @@ struct AddTaskSheet: View {
 
     // MARK: - Methods
 
-    /// Saves the new task to the database and dismisses the sheet
-    ///
-    /// Creates a new TodoTask with the entered values using TaskService.
-    /// The category is set to nil if empty string was selected.
     private func saveTask() {
+        guard isFormValid else { return }
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+
         let taskService = TaskService(modelContext: modelContext)
 
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
