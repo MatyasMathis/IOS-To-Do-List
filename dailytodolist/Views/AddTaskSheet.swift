@@ -2,60 +2,36 @@
 //  AddTaskSheet.swift
 //  dailytodolist
 //
-//  Purpose: Sheet view for creating new tasks
-//  Key responsibilities:
-//  - Provide form for entering task details
-//  - Handle title validation (non-empty)
-//  - Toggle between regular and recurring tasks
-//  - Category selection
+//  Purpose: Sheet view for creating new tasks with Whoop-inspired design
+//  Design: Dark theme with icon-based category selector and styled inputs
 //
 
 import SwiftUI
 import SwiftData
 
-/// Sheet view for adding a new task
+/// Sheet view for adding a new task with Whoop-inspired styling
 ///
-/// Presents a form with fields for:
-/// - Task title (required)
-/// - Category (optional)
-/// - Recurring toggle (daily repeat)
-///
-/// The sheet validates that the title is not empty before allowing
-/// the user to save the task.
+/// Features:
+/// - Dark theme with gradient backgrounds
+/// - Icon-based category grid selector
+/// - Radio button frequency selector
+/// - Animated primary button
 struct AddTaskSheet: View {
 
     // MARK: - Environment
 
-    /// Used to dismiss the sheet after saving
     @Environment(\.dismiss) private var dismiss
-
-    /// SwiftData model context for database operations
     @Environment(\.modelContext) private var modelContext
 
     // MARK: - State
 
-    /// The title entered by the user
     @State private var title: String = ""
-
-    /// The category selected by the user
     @State private var category: String = ""
-
-    /// Whether this task should repeat daily
     @State private var isRecurring: Bool = false
-
-    /// Controls focus on the title field
     @FocusState private var isTitleFocused: Bool
-
-    // MARK: - Constants
-
-    /// Available categories for tasks
-    /// These provide quick organization options for users
-    private let categories = ["", "Work", "Personal", "Health", "Shopping", "Other"]
 
     // MARK: - Computed Properties
 
-    /// Validates that the form can be submitted
-    /// Currently only checks that title is not empty after trimming whitespace
     private var isFormValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -64,64 +40,88 @@ struct AddTaskSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // MARK: Task Details Section
-                Section {
-                    TextField("Task title", text: $title)
-                        .focused($isTitleFocused)
+            ZStack {
+                // Background
+                Color.darkGray1.ignoresSafeArea()
 
-                    Picker("Category", selection: $category) {
-                        ForEach(categories, id: \.self) { category in
-                            Text(category.isEmpty ? "None" : category)
-                                .tag(category)
+                ScrollView {
+                    VStack(spacing: Spacing.section) {
+                        // Task Name Input
+                        taskNameSection
+
+                        // Category Selector
+                        CategorySelector(selectedCategory: $category)
+
+                        // Frequency Selector
+                        FrequencySelector(isRecurring: $isRecurring)
+
+                        // Create Button
+                        Button("Create Task") {
+                            saveTask()
                         }
+                        .buttonStyle(.primary)
+                        .disabled(!isFormValid)
+                        .padding(.top, Spacing.sm)
                     }
-                } header: {
-                    Text("Task Details")
-                }
-
-                // MARK: Recurring Section
-                Section {
-                    Toggle("Recurring Daily", isOn: $isRecurring)
-                } header: {
-                    Text("Schedule")
-                } footer: {
-                    Text(isRecurring
-                         ? "This task will reappear every day, even after completion."
-                         : "This task will disappear after you complete it.")
+                    .padding(Spacing.xl)
                 }
             }
-            .navigationTitle("New Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // MARK: Cancel Button
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .principal) {
+                    Text("Add New Task")
+                        .font(.system(size: Typography.h3Size, weight: .bold))
+                        .foregroundStyle(Color.pureWhite)
                 }
 
-                // MARK: Save Button
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        saveTask()
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                            .frame(width: 30, height: 30)
+                            .background(Color.darkGray2)
+                            .clipShape(Circle())
                     }
-                    .disabled(!isFormValid)
                 }
             }
+            .toolbarBackground(Color.darkGray1, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .onAppear {
-                // Auto-focus the title field when sheet appears
                 isTitleFocused = true
             }
+        }
+        .presentationBackground(Color.darkGray1)
+    }
+
+    // MARK: - Subviews
+
+    /// Task name input section
+    private var taskNameSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("TASK NAME")
+                .font(.system(size: Typography.labelSize, weight: .semibold))
+                .foregroundStyle(Color.mediumGray)
+
+            TextField("", text: $title, prompt: Text("Enter task name...")
+                .foregroundStyle(Color.mediumGray))
+                .font(.system(size: Typography.h4Size, weight: .medium))
+                .foregroundStyle(Color.pureWhite)
+                .padding(Spacing.lg)
+                .background(Color.darkGray2)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.standard)
+                        .stroke(isTitleFocused ? Color.recoveryGreen : Color.clear, lineWidth: 2)
+                )
+                .focused($isTitleFocused)
         }
     }
 
     // MARK: - Methods
 
-    /// Saves the new task to the database and dismisses the sheet
-    ///
-    /// Creates a new TodoTask with the entered values using TaskService.
-    /// The category is set to nil if empty string was selected.
     private func saveTask() {
         let taskService = TaskService(modelContext: modelContext)
 
@@ -133,6 +133,10 @@ struct AddTaskSheet: View {
             category: taskCategory,
             isRecurring: isRecurring
         )
+
+        // Success haptic
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
 
         dismiss()
     }
