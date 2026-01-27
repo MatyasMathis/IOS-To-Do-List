@@ -2,124 +2,50 @@
 //  MainTabView.swift
 //  dailytodolist
 //
-//  Purpose: Root view with compact pill toggle navigation
-//  Design: Centered capsule toggle with sliding indicator
+//  Purpose: Root view providing tab-based navigation
+//  Key responsibilities:
+//  - Provide tab navigation between Today and History views
+//  - Manage tab selection state
+//  - Serve as the main entry point for the app UI
 //
 
 import SwiftUI
 import SwiftData
 
-/// Root view with compact pill toggle navigation
+/// Root view that provides tab-based navigation for the app
 ///
-/// Features:
-/// - Centered floating pill toggle
-/// - Sliding capsule indicator
-/// - Haptic feedback on tab switch
-/// - Modern compact design
+/// Contains two tabs:
+/// 1. Today - Shows current day's tasks (TaskListView)
+/// 2. History - Shows completed tasks history (HistoryView)
+///
+/// The tab selection persists during the app session but resets to
+/// the Today tab when the app is relaunched.
 struct MainTabView: View {
 
     // MARK: - State
 
-    @State private var selectedTab: Tab = .today
-    @Namespace private var animation
-
-    // MARK: - Tab Enum
-
-    enum Tab: CaseIterable {
-        case today
-        case history
-
-        var label: String {
-            switch self {
-            case .today: return "Today"
-            case .history: return "History"
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .today: return "checkmark.circle"
-            case .history: return "clock.arrow.circlepath"
-            }
-        }
-
-        var iconFilled: String {
-            switch self {
-            case .today: return "checkmark.circle.fill"
-            case .history: return "clock.arrow.circlepath"
-            }
-        }
-    }
+    /// Currently selected tab
+    /// Defaults to the Today tab (index 0)
+    @State private var selectedTab: Int = 0
 
     // MARK: - Body
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Tab Content
-            TabView(selection: $selectedTab) {
-                TaskListView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(Tab.today)
-
-                HistoryView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(Tab.history)
-            }
-
-            // Compact Pill Toggle
-            pillToggle
-                .padding(.bottom, Spacing.lg)
-        }
-        .ignoresSafeArea(.keyboard)
-    }
-
-    // MARK: - Pill Toggle
-
-    private var pillToggle: some View {
-        HStack(spacing: Spacing.xs) {
-            ForEach(Tab.allCases, id: \.self) { tab in
-                tabButton(tab: tab)
-            }
-        }
-        .padding(Spacing.xs)
-        .background(
-            Capsule()
-                .fill(Color.darkGray1)
-                .shadow(color: Color.black.opacity(0.4), radius: 12, x: 0, y: 4)
-        )
-    }
-
-    // MARK: - Tab Button
-
-    private func tabButton(tab: Tab) -> some View {
-        Button {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
-
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                selectedTab = tab
-            }
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: selectedTab == tab ? tab.iconFilled : tab.icon)
-                    .font(.system(size: 16, weight: .semibold))
-
-                Text(tab.label)
-                    .font(.system(size: Typography.bodySize, weight: .semibold))
-                    .fixedSize()
-            }
-            .foregroundStyle(selectedTab == tab ? Color.brandBlack : Color.mediumGray)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .background {
-                if selectedTab == tab {
-                    Capsule()
-                        .fill(Color.recoveryGreen)
-                        .matchedGeometryEffect(id: "indicator", in: animation)
+        TabView(selection: $selectedTab) {
+            // MARK: Today Tab
+            TaskListView()
+                .tabItem {
+                    Label("Today", systemImage: "checkmark.circle")
                 }
-            }
+                .tag(0)
+
+            // MARK: History Tab
+            HistoryView()
+                .tabItem {
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                }
+                .tag(1)
         }
-        .buttonStyle(.plain)
     }
 }
 
