@@ -71,6 +71,11 @@ struct MainTabView: View {
                 .padding(.bottom, Spacing.lg)
         }
         .ignoresSafeArea(.keyboard)
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToTasks)) { _ in
+            withAnimation {
+                selectedTab = .today
+            }
+        }
     }
 
     // MARK: - Pill Toggle

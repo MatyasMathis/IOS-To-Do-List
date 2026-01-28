@@ -11,6 +11,7 @@
 
 import Foundation
 import SwiftData
+import WidgetKit
 
 /// Service class providing business logic for task management
 ///
@@ -36,6 +37,22 @@ class TaskService {
     /// - Parameter modelContext: SwiftData context for database operations
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+
+    // MARK: - Widget Refresh
+
+    /// Refreshes all widgets to reflect current task state
+    /// Saves the model context first to ensure data is persisted
+    private func refreshWidgets() {
+        // Save changes to disk before refreshing widget
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving context before widget refresh: \(error)")
+        }
+
+        // Reload widget timelines
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Create Operations
@@ -67,6 +84,7 @@ class TaskService {
         )
 
         modelContext.insert(task)
+        refreshWidgets()
         return task
     }
 
@@ -169,13 +187,16 @@ class TaskService {
     /// - Returns: true if task is now completed, false if uncompleted
     @discardableResult
     func toggleTaskCompletion(_ task: TodoTask) -> Bool {
+        let result: Bool
         if task.isCompletedToday() {
             uncompleteTask(task)
-            return false
+            result = false
         } else {
             completeTask(task)
-            return true
+            result = true
         }
+        refreshWidgets()
+        return result
     }
 
     /// Marks a task as completed for today
@@ -326,6 +347,7 @@ class TaskService {
     /// - Parameter task: The task to delete
     func deleteTask(_ task: TodoTask) {
         modelContext.delete(task)
+        refreshWidgets()
     }
 
     /// Soft deletes a task by marking it as inactive
@@ -336,6 +358,7 @@ class TaskService {
     /// - Parameter task: The task to soft delete
     func softDeleteTask(_ task: TodoTask) {
         task.isActive = false
+        refreshWidgets()
     }
 
     // MARK: - Reordering Operations
