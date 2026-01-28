@@ -21,6 +21,7 @@ struct HistoryView: View {
     // MARK: - Environment
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - Queries
 
@@ -87,6 +88,12 @@ struct HistoryView: View {
             }
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                // Refresh data when app comes to foreground (e.g., after widget interaction)
+                if newPhase == .active {
+                    modelContext.processPendingChanges()
+                }
+            }
         }
     }
 

@@ -22,6 +22,7 @@ struct TaskListView: View {
     // MARK: - Environment
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - State
 
@@ -132,6 +133,13 @@ struct TaskListView: View {
             }
             .onChange(of: allActiveTasks) {
                 updateTodayTasks()
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                // Refresh data when app comes to foreground (e.g., after widget interaction)
+                if newPhase == .active {
+                    modelContext.processPendingChanges()
+                    updateTodayTasks()
+                }
             }
             .environment(\.editMode, $editMode)
         }

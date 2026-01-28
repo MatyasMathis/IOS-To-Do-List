@@ -2,10 +2,12 @@
 //  WidgetTaskRow.swift
 //  TodayTasksWidget
 //
-//  Purpose: Task row component for widget views with category and recurring badges.
+//  Purpose: Interactive task row component for widget views.
+//  Tapping the checkbox completes the task without opening the app.
 //
 
 import SwiftUI
+import AppIntents
 
 struct WidgetTaskRow: View {
     let task: WidgetTask
@@ -13,10 +15,13 @@ struct WidgetTaskRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // Empty checkbox circle
-            Circle()
-                .stroke(Color.widgetMediumGray, lineWidth: 2)
-                .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+            // Interactive checkbox button
+            Button(intent: ToggleTaskIntent(taskId: task.id.uuidString)) {
+                Circle()
+                    .stroke(Color.widgetMediumGray, lineWidth: 2)
+                    .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+            }
+            .buttonStyle(.plain)
 
             // Task title
             Text(task.title)

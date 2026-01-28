@@ -16,6 +16,8 @@
 		A18BAC332F2A7F38000D1278 /* TaskCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18BAC282F2A7F38000D1278 /* TaskCompletion.swift */; };
 		A18BAC342F2A7F38000D1278 /* TodoTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18BAC292F2A7F38000D1278 /* TodoTask.swift */; };
 		A18BAC352F2A7F38000D1278 /* SharedModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18BAC2B2F2A7F38000D1278 /* SharedModelContainer.swift */; };
+		A18BAC542F2A8C3C000D1278 /* ToggleTaskIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18BAC532F2A8C3C000D1278 /* ToggleTaskIntent.swift */; };
+		A18BAC552F2A8C3C000D1278 /* ToggleTaskIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18BAC532F2A8C3C000D1278 /* ToggleTaskIntent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +52,7 @@
 		A18BAC292F2A7F38000D1278 /* TodoTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoTask.swift; sourceTree = "<group>"; };
 		A18BAC2B2F2A7F38000D1278 /* SharedModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedModelContainer.swift; sourceTree = "<group>"; };
 		A18BAC522F2A87CE000D1278 /* TodayTasksWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TodayTasksWidgetExtension.entitlements; sourceTree = "<group>"; };
+		A18BAC532F2A8C3C000D1278 /* ToggleTaskIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleTaskIntent.swift; sourceTree = "<group>"; };
 		A1D9C8252F24D72B00EB2FF6 /* dailytodolist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dailytodolist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -120,6 +123,7 @@
 		A18BAC2C2F2A7F38000D1278 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				A18BAC532F2A8C3C000D1278 /* ToggleTaskIntent.swift */,
 				A18BAC2A2F2A7F38000D1278 /* Models */,
 				A18BAC2B2F2A7F38000D1278 /* SharedModelContainer.swift */,
 			);
@@ -259,6 +263,7 @@
 				A18BAC2D2F2A7F38000D1278 /* TaskCompletion.swift in Sources */,
 				A18BAC2E2F2A7F38000D1278 /* TodoTask.swift in Sources */,
 				A18BAC2F2F2A7F38000D1278 /* SharedModelContainer.swift in Sources */,
+				A18BAC552F2A8C3C000D1278 /* ToggleTaskIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,6 +271,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A18BAC542F2A8C3C000D1278 /* ToggleTaskIntent.swift in Sources */,
 				A18BAC332F2A7F38000D1278 /* TaskCompletion.swift in Sources */,
 				A18BAC342F2A7F38000D1278 /* TodoTask.swift in Sources */,
 				A18BAC352F2A7F38000D1278 /* SharedModelContainer.swift in Sources */,
