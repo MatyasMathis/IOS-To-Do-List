@@ -288,7 +288,7 @@ UI changes:
 
 ## Monetization Strategy
 
-### Option A: Freemium (Recommended)
+### Pricing Strategy: Freemium
 
 **Free Tier**:
 - Unlimited tasks
@@ -296,7 +296,7 @@ UI changes:
 - Basic history view
 - 1 category
 
-**Premium Tier ($2.99/month or $19.99/year)**:
+**Premium Tier: $3.99/month or $24.99/year (48% savings)**
 - Streak tracking
 - Analytics dashboard
 - All recurrence patterns
@@ -307,14 +307,16 @@ UI changes:
 - Templates
 - Themes
 
-### Option B: One-Time Purchase
+### Why This Pricing Works
 
-**Free Tier**: Basic functionality
-**Pro Unlock**: $9.99 one-time for all features
+| Competitor | Price | Your Advantage |
+|------------|-------|----------------|
+| Streaks | $5.99 one-time | You have history + analytics |
+| Habitify | $4.99/mo | You're cheaper with similar features |
+| Strides | $4.99/mo | You're cheaper, focused on daily habits |
+| Productive | $3.99 | Same price, you have better recurrence |
 
-### Option C: Tip Jar
-
-Keep app free, add optional tips ($1.99, $4.99, $9.99)
+**Revenue target**: ~900 active subscribers = $3,000 MRR
 
 ---
 
