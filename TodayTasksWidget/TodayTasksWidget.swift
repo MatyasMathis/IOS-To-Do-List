@@ -31,11 +31,11 @@ struct TodayTasksWidget: Widget {
     TaskEntry(
         date: Date(),
         tasks: [
-            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true),
-            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false)
+            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
+            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false, isCompletedToday: true)
         ],
-        completedCount: 2,
-        totalCount: 5
+        completedCount: 1,
+        totalCount: 2
     )
 }
 
@@ -45,12 +45,12 @@ struct TodayTasksWidget: Widget {
     TaskEntry(
         date: Date(),
         tasks: [
-            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true),
-            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true),
-            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false)
+            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
+            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true, isCompletedToday: false),
+            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true)
         ],
-        completedCount: 2,
-        totalCount: 5
+        completedCount: 1,
+        totalCount: 3
     )
 }
 
@@ -60,13 +60,13 @@ struct TodayTasksWidget: Widget {
     TaskEntry(
         date: Date(),
         tasks: [
-            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true),
-            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true),
-            WidgetTask(id: UUID(), title: "Team standup", category: "Work", isRecurring: true),
-            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false),
-            WidgetTask(id: UUID(), title: "Call mom", category: "Personal", isRecurring: false)
+            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
+            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true, isCompletedToday: false),
+            WidgetTask(id: UUID(), title: "Team standup", category: "Work", isRecurring: true, isCompletedToday: false),
+            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true),
+            WidgetTask(id: UUID(), title: "Call mom", category: "Personal", isRecurring: false, isCompletedToday: true)
         ],
         completedCount: 2,
-        totalCount: 7
+        totalCount: 5
     )
 }

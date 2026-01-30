@@ -17,7 +17,7 @@ struct MediumWidgetView: View {
     }
 
     private var displayTasks: [WidgetTask] {
-        Array(entry.tasks.prefix(3))
+        Array(entry.tasks.prefix(2))
     }
 
     var body: some View {

@@ -17,28 +17,43 @@ struct WidgetTaskRow: View {
         HStack(spacing: 10) {
             // Interactive checkbox button
             Button(intent: ToggleTaskIntent(taskId: task.id.uuidString)) {
-                Circle()
-                    .stroke(Color.widgetMediumGray, lineWidth: 2)
-                    .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+                ZStack {
+                    Circle()
+                        .stroke(task.isCompletedToday ? Color.widgetRecoveryGreen : Color.widgetMediumGray, lineWidth: 2)
+                        .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+
+                    if task.isCompletedToday {
+                        Circle()
+                            .fill(Color.widgetRecoveryGreen)
+                            .frame(width: compact ? 18 : 22, height: compact ? 18 : 22)
+
+                        Image(systemName: "checkmark")
+                            .font(.system(size: compact ? 10 : 12, weight: .bold))
+                            .foregroundStyle(Color.widgetPureWhite)
+                    }
+                }
             }
             .buttonStyle(.plain)
 
             // Task title
             Text(task.title)
                 .font(.system(size: compact ? 14 : 16, weight: .medium))
-                .foregroundStyle(Color.widgetPureWhite)
+                .foregroundStyle(task.isCompletedToday ? Color.widgetPureWhite.opacity(0.6) : Color.widgetPureWhite)
+                .strikethrough(task.isCompletedToday, color: Color.widgetPureWhite.opacity(0.4))
                 .lineLimit(1)
 
             Spacer()
 
-            // Badges
-            HStack(spacing: 4) {
-                if let category = task.category, !category.isEmpty {
-                    WidgetCategoryBadge(category: category, compact: compact)
-                }
+            // Badges (only show when not completed)
+            if !task.isCompletedToday {
+                HStack(spacing: 4) {
+                    if let category = task.category, !category.isEmpty {
+                        WidgetCategoryBadge(category: category, compact: compact)
+                    }
 
-                if task.isRecurring {
-                    WidgetRecurringBadge(compact: compact)
+                    if task.isRecurring {
+                        WidgetRecurringBadge(compact: compact)
+                    }
                 }
             }
         }
@@ -46,6 +61,7 @@ struct WidgetTaskRow: View {
         .padding(.vertical, compact ? 8 : 10)
         .background(Color.widgetDarkGray2)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+        .opacity(task.isCompletedToday ? 0.7 : 1.0)
     }
 }
 

@@ -23,6 +23,10 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
 
+    // MARK: - State
+
+    @State private var refreshID = UUID()
+
     // MARK: - Queries
 
     @Query(sort: \TaskCompletion.completedAt, order: .reverse)
@@ -91,9 +95,10 @@ struct HistoryView: View {
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 // Refresh data when app comes to foreground (e.g., after widget interaction)
                 if newPhase == .active {
-                    modelContext.processPendingChanges()
+                    refreshID = UUID()
                 }
             }
+            .id(refreshID)
         }
     }
 

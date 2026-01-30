@@ -23,6 +23,7 @@ struct WidgetTask: Identifiable {
     let title: String
     let category: String?
     let isRecurring: Bool
+    let isCompletedToday: Bool
 }
 
 // MARK: - Timeline Provider
@@ -33,12 +34,12 @@ struct TodayTasksProvider: TimelineProvider {
         TaskEntry(
             date: Date(),
             tasks: [
-                WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true),
-                WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false),
-                WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false)
+                WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
+                WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false, isCompletedToday: false),
+                WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true)
             ],
-            completedCount: 2,
-            totalCount: 5
+            completedCount: 1,
+            totalCount: 3
         )
     }
 
@@ -78,44 +79,55 @@ struct TodayTasksProvider: TimelineProvider {
 
         let allTasks = (try? context.fetch(descriptor)) ?? []
 
-        var incompleteTasks: [TodoTask] = []
-        var completedTodayCount = 0
+        // Filter tasks that belong to today's list:
+        // - Recurring tasks: always show (completed today or not)
+        // - Non-recurring tasks: show if never completed OR completed today
+        var todayTasks: [(task: TodoTask, isCompleted: Bool)] = []
 
         for task in allTasks {
             let isCompletedToday = task.isCompletedToday()
 
-            if isCompletedToday {
-                completedTodayCount += 1
-            }
-
             if task.isRecurring {
-                if !isCompletedToday {
-                    incompleteTasks.append(task)
-                }
+                // Always include recurring tasks
+                todayTasks.append((task, isCompletedToday))
             } else {
                 let hasAnyCompletions = !(task.completions?.isEmpty ?? true)
                 if !hasAnyCompletions {
-                    incompleteTasks.append(task)
+                    // Never completed - include
+                    todayTasks.append((task, false))
+                } else if isCompletedToday {
+                    // Has completions but completed today - include
+                    todayTasks.append((task, true))
                 }
+                // If has completions but not today, exclude (finished non-recurring)
             }
         }
 
-        let widgetTasks = incompleteTasks.map { task in
-            WidgetTask(
-                id: task.id,
-                title: task.title,
-                category: task.category,
-                isRecurring: task.isRecurring
-            )
+        // Sort: incomplete tasks first, then completed tasks at the end
+        todayTasks.sort { item1, item2 in
+            if item1.isCompleted == item2.isCompleted {
+                return item1.task.sortOrder < item2.task.sortOrder
+            }
+            return !item1.isCompleted && item2.isCompleted
         }
 
-        let totalCount = incompleteTasks.count + completedTodayCount
+        let completedCount = todayTasks.filter { $0.isCompleted }.count
+
+        let widgetTasks = todayTasks.map { item in
+            WidgetTask(
+                id: item.task.id,
+                title: item.task.title,
+                category: item.task.category,
+                isRecurring: item.task.isRecurring,
+                isCompletedToday: item.isCompleted
+            )
+        }
 
         return TaskEntry(
             date: Date(),
             tasks: widgetTasks,
-            completedCount: completedTodayCount,
-            totalCount: totalCount
+            completedCount: completedCount,
+            totalCount: todayTasks.count
         )
     }
 }

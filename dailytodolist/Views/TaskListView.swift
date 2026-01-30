@@ -29,6 +29,7 @@ struct TaskListView: View {
     @State private var isShowingAddSheet = false
     @State private var todayTasks: [TodoTask] = []
     @State private var editMode: EditMode = .inactive
+    @State private var refreshID = UUID()
 
     // MARK: - Queries
 
@@ -45,18 +46,14 @@ struct TaskListView: View {
 
     // MARK: - Computed Properties
 
-    /// Number of tasks completed today
+    /// Number of tasks completed today (from todayTasks list)
     private var completedTodayCount: Int {
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
-        return allCompletions.filter { completion in
-            calendar.isDate(completion.completedAt, inSameDayAs: startOfToday)
-        }.count
+        todayTasks.filter { $0.isCompletedToday() }.count
     }
 
-    /// Total tasks for today (active incomplete + completed today)
+    /// Total tasks for today (all tasks in todayTasks, both completed and incomplete)
     private var totalTodayCount: Int {
-        todayTasks.count + completedTodayCount
+        todayTasks.count
     }
 
     /// Current streak (consecutive days with completions)
@@ -137,10 +134,12 @@ struct TaskListView: View {
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 // Refresh data when app comes to foreground (e.g., after widget interaction)
                 if newPhase == .active {
-                    modelContext.processPendingChanges()
-                    updateTodayTasks()
+                    // Force view refresh by changing the ID, which re-triggers @Query
+                    refreshID = UUID()
+                    refreshFromDatabase()
                 }
             }
+            .id(refreshID)
             .environment(\.editMode, $editMode)
         }
     }
@@ -159,21 +158,19 @@ struct TaskListView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.top, Spacing.sm)
 
-                // Task list
-                VStack(spacing: Spacing.sm) {
-                    ForEach(todayTasks) { task in
-                        TaskRow(task: task) { completedTask in
-                            completeTask(completedTask)
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                deleteTask(task)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
+                // Task list with drag to reorder
+                ReorderableTaskList(
+                    tasks: $todayTasks,
+                    onComplete: { task in
+                        completeTask(task)
+                    },
+                    onDelete: { task in
+                        deleteTask(task)
+                    },
+                    onReorder: { tasks in
+                        reorderTasks(tasks)
                     }
-                }
+                )
                 .padding(.horizontal, Spacing.lg)
 
                 // Bottom padding for FAB
@@ -208,25 +205,68 @@ struct TaskListView: View {
             generator.notificationOccurred(.success)
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation {
-                updateTodayTasks()
-            }
+        // Update immediately - completed tasks stay in list but move to end
+        withAnimation {
+            updateTodayTasks()
         }
     }
 
     private func refreshTasks() async {
         try? await Task.sleep(nanoseconds: 300_000_000)
+        refreshFromDatabase()
+    }
+
+    /// Force refresh all data from the database (needed after widget updates)
+    private func refreshFromDatabase() {
+        // Force SwiftData to re-read from disk by invalidating cached data
+        // This is needed because the widget writes directly to the shared database
+        do {
+            // Manually fetch fresh data from database
+            let taskDescriptor = FetchDescriptor<TodoTask>(
+                predicate: #Predicate { $0.isActive == true },
+                sortBy: [SortDescriptor(\.sortOrder)]
+            )
+            let freshTasks = try modelContext.fetch(taskDescriptor)
+
+            // Touch each task to ensure relationships are loaded fresh
+            for task in freshTasks {
+                _ = task.completions?.count
+            }
+        } catch {
+            print("Error refreshing from database: \(error)")
+        }
+
         updateTodayTasks()
     }
 
     private func updateTodayTasks() {
-        todayTasks = allActiveTasks.filter { task in
+        // Filter tasks that belong to today's list:
+        // - Recurring tasks: always show (completed today or not)
+        // - Non-recurring tasks: show if never completed OR completed today
+        let filteredTasks = allActiveTasks.filter { task in
             if task.isRecurring {
-                return !task.isCompletedToday()
+                return true  // Always show recurring tasks
             } else {
-                return !hasEverBeenCompleted(task)
+                // Show non-recurring if: never completed, or completed today
+                guard let completions = task.completions, !completions.isEmpty else {
+                    return true  // Never completed
+                }
+                // Has completions - only show if one is from today
+                return task.isCompletedToday()
             }
+        }
+
+        // Sort: incomplete tasks first (by sortOrder), then completed tasks at the end
+        todayTasks = filteredTasks.sorted { task1, task2 in
+            let completed1 = task1.isCompletedToday()
+            let completed2 = task2.isCompletedToday()
+
+            if completed1 == completed2 {
+                // Both same completion status - sort by sortOrder
+                return task1.sortOrder < task2.sortOrder
+            }
+            // Incomplete tasks come first
+            return !completed1 && completed2
         }
     }
 
@@ -240,6 +280,14 @@ struct TaskListView: View {
             modelContext.delete(task)
             updateTodayTasks()
         }
+    }
+
+    private func reorderTasks(_ tasks: [TodoTask]) {
+        let taskService = TaskService(modelContext: modelContext)
+        // Only update sortOrder for incomplete tasks
+        let incompleteTasks = tasks.filter { !$0.isCompletedToday() }
+        taskService.reorderTasks(incompleteTasks)
+        try? modelContext.save()
     }
 
     /// Calculates the current streak of consecutive days with completions

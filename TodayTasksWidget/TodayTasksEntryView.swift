@@ -20,7 +20,8 @@ struct TodayTasksEntryView: View {
                 .padding(16)
         case .systemMedium:
             MediumWidgetView(entry: entry)
-                .padding(16)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 28)
         case .systemLarge:
             LargeWidgetView(entry: entry)
                 .padding(16)
