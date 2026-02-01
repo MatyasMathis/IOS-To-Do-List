@@ -1,27 +1,35 @@
 //
-//  AddTaskSheet.swift
+//  EditTaskSheet.swift
 //  dailytodolist
 //
-//  Purpose: Sheet view for creating new tasks with Whoop-inspired design
-//  Design: Dark theme with icon-based category selector and styled inputs
+//  Purpose: Sheet view for editing existing tasks
+//  Features: Pre-filled form with current task values, save/cancel flow
 //
 
 import SwiftUI
 import SwiftData
 
-/// Sheet view for adding a new task with Whoop-inspired styling
+/// Sheet view for editing an existing task
 ///
 /// Features:
-/// - Dark theme with gradient backgrounds
-/// - Icon-based category grid selector
-/// - Radio button frequency selector
-/// - Animated primary button
-struct AddTaskSheet: View {
+/// - Pre-fills all fields with current task values
+/// - Same UI as AddTaskSheet for consistency
+/// - Save Changes button updates the task
+/// - Delete option available
+struct EditTaskSheet: View {
 
     // MARK: - Environment
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+
+    // MARK: - Properties
+
+    /// The task being edited
+    let task: TodoTask
+
+    /// Callback when task is deleted
+    var onDelete: (() -> Void)?
 
     // MARK: - State
 
@@ -30,6 +38,7 @@ struct AddTaskSheet: View {
     @State private var recurrenceType: RecurrenceType = .none
     @State private var selectedWeekdays: [Int] = []
     @State private var selectedMonthDays: [Int] = []
+    @State private var showDeleteConfirmation: Bool = false
     @FocusState private var isTitleFocused: Bool
 
     // MARK: - Computed Properties
@@ -46,6 +55,17 @@ struct AddTaskSheet: View {
         case .monthly:
             return hasTitle && !selectedMonthDays.isEmpty
         }
+    }
+
+    private var hasChanges: Bool {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentCategory = category.isEmpty ? nil : category
+
+        return trimmedTitle != task.title ||
+               currentCategory != task.category ||
+               recurrenceType != task.recurrenceType ||
+               selectedWeekdays != task.selectedWeekdays ||
+               selectedMonthDays != task.selectedMonthDays
     }
 
     // MARK: - Body
@@ -71,13 +91,27 @@ struct AddTaskSheet: View {
                             selectedMonthDays: $selectedMonthDays
                         )
 
-                        // Create Button
-                        Button("Create Task") {
+                        // Save Button
+                        Button("Save Changes") {
                             saveTask()
                         }
                         .buttonStyle(.primary)
-                        .disabled(!isFormValid)
+                        .disabled(!isFormValid || !hasChanges)
                         .padding(.top, Spacing.sm)
+
+                        // Delete Button
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Delete Task")
+                            }
+                            .font(.system(size: Typography.bodySize, weight: .medium))
+                            .foregroundStyle(Color.strainRed)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.md)
+                        }
                     }
                     .padding(Spacing.xl)
                 }
@@ -85,7 +119,7 @@ struct AddTaskSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("Add New Task")
+                    Text("Edit Task")
                         .font(.system(size: Typography.h3Size, weight: .bold))
                         .foregroundStyle(Color.pureWhite)
                 }
@@ -106,7 +140,19 @@ struct AddTaskSheet: View {
             .toolbarBackground(Color.darkGray1, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .onAppear {
-                isTitleFocused = true
+                loadTaskData()
+            }
+            .confirmationDialog(
+                "Delete Task",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    deleteTask()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to delete this task? This action cannot be undone.")
             }
         }
         .presentationBackground(Color.darkGray1)
@@ -138,13 +184,24 @@ struct AddTaskSheet: View {
 
     // MARK: - Methods
 
+    /// Loads the current task data into the form fields
+    private func loadTaskData() {
+        title = task.title
+        category = task.category ?? ""
+        recurrenceType = task.recurrenceType
+        selectedWeekdays = task.selectedWeekdays
+        selectedMonthDays = task.selectedMonthDays
+    }
+
+    /// Saves the updated task
     private func saveTask() {
         let taskService = TaskService(modelContext: modelContext)
 
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let taskCategory: String? = category.isEmpty ? nil : category
 
-        taskService.createTask(
+        taskService.updateTask(
+            task,
             title: trimmedTitle,
             category: taskCategory,
             recurrenceType: recurrenceType,
@@ -158,11 +215,35 @@ struct AddTaskSheet: View {
 
         dismiss()
     }
+
+    /// Deletes the task
+    private func deleteTask() {
+        let taskService = TaskService(modelContext: modelContext)
+        taskService.deleteTask(task)
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
+
+        onDelete?()
+        dismiss()
+    }
 }
 
 // MARK: - Preview
 
 #Preview {
-    AddTaskSheet()
-        .modelContainer(for: [TodoTask.self, TaskCompletion.self], inMemory: true)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+
+    let task = TodoTask(
+        title: "Morning Workout",
+        category: "Health",
+        recurrenceType: .weekly,
+        selectedWeekdays: [2, 4, 6]
+    )
+    container.mainContext.insert(task)
+
+    return EditTaskSheet(task: task)
+        .modelContainer(container)
 }

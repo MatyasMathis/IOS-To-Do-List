@@ -30,14 +30,18 @@ struct CategoryBadge: View {
 
 // MARK: - Recurring Badge
 
-/// Badge indicating a task repeats daily with Whoop-inspired styling
+/// Badge indicating a task's recurrence pattern with Whoop-inspired styling
+/// Displays the recurrence schedule (e.g., "DAILY", "MON, WED, FRI", "1ST, 15TH")
 struct RecurringBadge: View {
+    let task: TodoTask
+
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "repeat")
                 .font(.system(size: 10, weight: .bold))
-            Text("DAILY")
+            Text(task.recurrenceDisplayString)
                 .font(.system(size: Typography.captionSize, weight: .semibold))
+                .lineLimit(1)
         }
         .foregroundStyle(Color.performancePurple)
         .padding(.horizontal, Spacing.sm)
@@ -97,7 +101,14 @@ struct StreakBadge: View {
                 CategoryBadge(category: "Shopping")
                 CategoryBadge(category: "Other")
             }
-            RecurringBadge()
+
+            // Recurring badges with different patterns
+            VStack(spacing: Spacing.sm) {
+                RecurringBadge(task: TodoTask(title: "Daily", recurrenceType: .daily))
+                RecurringBadge(task: TodoTask(title: "Weekly", recurrenceType: .weekly, selectedWeekdays: [2, 4, 6]))
+                RecurringBadge(task: TodoTask(title: "Monthly", recurrenceType: .monthly, selectedMonthDays: [1, 15]))
+            }
+
             TimeBadge(time: "2:30 PM")
             HStack(spacing: Spacing.xl) {
                 StreakBadge(count: 1)

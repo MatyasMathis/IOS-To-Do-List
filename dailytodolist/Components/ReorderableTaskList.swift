@@ -14,15 +14,18 @@ struct ReorderableTaskList: View {
     let onComplete: (TodoTask) -> Void
     let onDelete: (TodoTask) -> Void
     let onReorder: ([TodoTask]) -> Void
+    var onEdit: ((TodoTask) -> Void)?
 
     @State private var draggingTask: TodoTask?
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
             ForEach(tasks) { task in
-                TaskRow(task: task) { completedTask in
+                TaskRow(task: task, onComplete: { completedTask in
                     onComplete(completedTask)
-                }
+                }, onEdit: { taskToEdit in
+                    onEdit?(taskToEdit)
+                })
                 .contextMenu {
                     Button(role: .destructive) {
                         onDelete(task)

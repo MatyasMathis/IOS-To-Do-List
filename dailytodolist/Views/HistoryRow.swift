@@ -61,8 +61,8 @@ struct HistoryRow: View {
                         }
 
                         // Recurring badge
-                        if task.isRecurring {
-                            RecurringBadge()
+                        if task.recurrenceType != .none {
+                            RecurringBadge(task: task)
                         }
                     }
                 } else {

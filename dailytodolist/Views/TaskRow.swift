@@ -17,6 +17,7 @@ import SwiftData
 /// - Category badge with color-coded styling
 /// - Recurring badge with purple accent
 /// - Strikethrough and opacity change when completed
+/// - Tap to edit (except checkbox area)
 struct TaskRow: View {
 
     // MARK: - Properties
@@ -27,6 +28,9 @@ struct TaskRow: View {
     /// Callback when task completion is toggled
     var onComplete: ((TodoTask) -> Void)?
 
+    /// Callback when task is tapped for editing
+    var onEdit: ((TodoTask) -> Void)?
+
     // MARK: - State
 
     /// Tracks whether the task appears completed in the UI
@@ -36,42 +40,54 @@ struct TaskRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.md) {
-            // MARK: Checkbox
+            // MARK: Checkbox (separate tap target)
             CheckboxButton(isChecked: isCompleted) {
                 toggleCompletion()
             }
 
-            // MARK: Task Info
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                // Task title
-                Text(task.title)
-                    .font(.system(size: Typography.h4Size, weight: .medium))
-                    .foregroundStyle(isCompleted ? Color.pureWhite.opacity(0.6) : Color.pureWhite)
-                    .strikethrough(isCompleted, color: Color.pureWhite.opacity(0.4))
-
-                // Badges row (only show when not completed)
+            // MARK: Task Info (tappable for edit)
+            Button {
                 if !isCompleted {
-                    HStack(spacing: Spacing.sm) {
-                        // Category badge
-                        if let category = task.category, !category.isEmpty {
-                            CategoryBadge(category: category)
-                        }
+                    onEdit?(task)
+                }
+            } label: {
+                HStack(spacing: Spacing.md) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        // Task title
+                        Text(task.title)
+                            .font(.system(size: Typography.h4Size, weight: .medium))
+                            .foregroundStyle(isCompleted ? Color.pureWhite.opacity(0.6) : Color.pureWhite)
+                            .strikethrough(isCompleted, color: Color.pureWhite.opacity(0.4))
+                            .multilineTextAlignment(.leading)
 
-                        // Recurring badge
-                        if task.isRecurring {
-                            RecurringBadge()
+                        // Badges row (only show when not completed)
+                        if !isCompleted {
+                            HStack(spacing: Spacing.sm) {
+                                // Category badge
+                                if let category = task.category, !category.isEmpty {
+                                    CategoryBadge(category: category)
+                                }
+
+                                // Recurring badge
+                                if task.recurrenceType != .none {
+                                    RecurringBadge(task: task)
+                                }
+                            }
                         }
                     }
+
+                    Spacer()
+
+                    // Chevron indicator
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.mediumGray)
+                        .opacity(isCompleted ? 0 : 0.5)
                 }
+                .contentShape(Rectangle())
             }
-
-            Spacer()
-
-            // Chevron indicator
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.mediumGray)
-                .opacity(isCompleted ? 0 : 0.5)
+            .buttonStyle(.plain)
+            .disabled(isCompleted)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, 14)
@@ -116,9 +132,10 @@ struct TaskRow: View {
         Color.brandBlack.ignoresSafeArea()
         VStack(spacing: Spacing.sm) {
             TaskRow(task: TodoTask(title: "Morning Workout", category: "Health"))
-            TaskRow(task: TodoTask(title: "Team Meeting", category: "Work", isRecurring: true))
+            TaskRow(task: TodoTask(title: "Team Meeting", category: "Work", recurrenceType: .daily))
+            TaskRow(task: TodoTask(title: "Gym Session", category: "Health", recurrenceType: .weekly, selectedWeekdays: [2, 4, 6]))
+            TaskRow(task: TodoTask(title: "Pay Bills", category: "Personal", recurrenceType: .monthly, selectedMonthDays: [1, 15]))
             TaskRow(task: TodoTask(title: "Buy groceries", category: "Shopping"))
-            TaskRow(task: TodoTask(title: "Simple task"))
         }
         .padding(Spacing.lg)
     }

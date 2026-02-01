@@ -27,6 +27,8 @@ struct TaskListView: View {
     // MARK: - State
 
     @State private var isShowingAddSheet = false
+    @State private var isShowingEditSheet = false
+    @State private var taskToEdit: TodoTask?
     @State private var todayTasks: [TodoTask] = []
     @State private var editMode: EditMode = .inactive
     @State private var refreshID = UUID()
@@ -125,6 +127,24 @@ struct TaskListView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $isShowingEditSheet, onDismiss: {
+                // Refresh tasks after editing
+                withAnimation {
+                    updateTodayTasks()
+                }
+                taskToEdit = nil
+            }) {
+                if let task = taskToEdit {
+                    EditTaskSheet(task: task) {
+                        // On delete callback
+                        withAnimation {
+                            updateTodayTasks()
+                        }
+                    }
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                }
+            }
             .onAppear {
                 updateTodayTasks()
             }
@@ -169,6 +189,9 @@ struct TaskListView: View {
                     },
                     onReorder: { tasks in
                         reorderTasks(tasks)
+                    },
+                    onEdit: { task in
+                        editTask(task)
                     }
                 )
                 .padding(.horizontal, Spacing.lg)
@@ -240,12 +263,17 @@ struct TaskListView: View {
     }
 
     private func updateTodayTasks() {
-        // Filter tasks that belong to today's list:
-        // - Recurring tasks: always show (completed today or not)
-        // - Non-recurring tasks: show if never completed OR completed today
+        // Filter tasks that belong to today's list based on recurrence pattern:
+        // - One-time tasks: show if never completed OR completed today
+        // - Daily tasks: always show (completed today or not)
+        // - Weekly tasks: show only on selected weekdays
+        // - Monthly tasks: show only on selected dates
         let filteredTasks = allActiveTasks.filter { task in
-            if task.isRecurring {
-                return true  // Always show recurring tasks
+            // First check if the task should show based on recurrence pattern
+            guard task.shouldShowToday() else { return false }
+
+            if task.recurrenceType != .none {
+                return true  // Show recurring tasks (they'll appear with completion status)
             } else {
                 // Show non-recurring if: never completed, or completed today
                 guard let completions = task.completions, !completions.isEmpty else {
@@ -280,6 +308,11 @@ struct TaskListView: View {
             modelContext.delete(task)
             updateTodayTasks()
         }
+    }
+
+    private func editTask(_ task: TodoTask) {
+        taskToEdit = task
+        isShowingEditSheet = true
     }
 
     private func reorderTasks(_ tasks: [TodoTask]) {
@@ -333,7 +366,7 @@ struct TaskListView: View {
     let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
 
     let task1 = TodoTask(title: "Morning Workout", category: "Health", sortOrder: 1)
-    let task2 = TodoTask(title: "Team Meeting", category: "Work", isRecurring: true, sortOrder: 2)
+    let task2 = TodoTask(title: "Team Meeting", category: "Work", recurrenceType: .daily, sortOrder: 2)
     let task3 = TodoTask(title: "Buy groceries", category: "Shopping", sortOrder: 3)
     container.mainContext.insert(task1)
     container.mainContext.insert(task2)

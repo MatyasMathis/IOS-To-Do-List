@@ -65,13 +65,17 @@ class TaskService {
     /// - Parameters:
     ///   - title: The display title for the task (required, non-empty)
     ///   - category: Optional category for organization
-    ///   - isRecurring: Whether the task repeats daily (default: false)
+    ///   - recurrenceType: The type of recurrence pattern (default: .none)
+    ///   - selectedWeekdays: Weekdays for weekly recurrence (1=Sun, 7=Sat)
+    ///   - selectedMonthDays: Days for monthly recurrence (1-31)
     /// - Returns: The newly created task
     @discardableResult
     func createTask(
         title: String,
         category: String? = nil,
-        isRecurring: Bool = false
+        recurrenceType: RecurrenceType = .none,
+        selectedWeekdays: [Int] = [],
+        selectedMonthDays: [Int] = []
     ) -> TodoTask {
         // Get the current maximum sort order to place new task at end
         let maxSortOrder = fetchMaxSortOrder()
@@ -79,13 +83,42 @@ class TaskService {
         let task = TodoTask(
             title: title,
             category: category,
-            isRecurring: isRecurring,
+            recurrenceType: recurrenceType,
+            selectedWeekdays: selectedWeekdays,
+            selectedMonthDays: selectedMonthDays,
             sortOrder: maxSortOrder + 1
         )
 
         modelContext.insert(task)
         refreshWidgets()
         return task
+    }
+
+    // MARK: - Update Operations
+
+    /// Updates an existing task with new properties
+    ///
+    /// - Parameters:
+    ///   - task: The task to update
+    ///   - title: New title for the task
+    ///   - category: New category (nil to remove)
+    ///   - recurrenceType: New recurrence pattern
+    ///   - selectedWeekdays: New weekdays for weekly recurrence
+    ///   - selectedMonthDays: New days for monthly recurrence
+    func updateTask(
+        _ task: TodoTask,
+        title: String,
+        category: String?,
+        recurrenceType: RecurrenceType,
+        selectedWeekdays: [Int],
+        selectedMonthDays: [Int]
+    ) {
+        task.title = title
+        task.category = category
+        task.recurrenceType = recurrenceType
+        task.selectedWeekdays = selectedWeekdays
+        task.selectedMonthDays = selectedMonthDays
+        refreshWidgets()
     }
 
     // MARK: - Read Operations
@@ -113,20 +146,21 @@ class TaskService {
     /// Fetches tasks that should appear in today's list
     ///
     /// This is the core filtering logic for the app:
-    /// - Recurring tasks: Included if NOT completed today
-    ///   (they will reappear tomorrow even if completed today)
-    /// - Non-recurring tasks: Included if NEVER completed
-    ///   (once completed, they're done forever)
+    /// - One-time tasks: Show if NEVER completed
+    /// - Daily tasks: Show if NOT completed today
+    /// - Weekly tasks: Show if today is a selected weekday AND NOT completed today
+    /// - Monthly tasks: Show if today is a selected date AND NOT completed today
     ///
     /// - Returns: Array of tasks for today's list, sorted by sortOrder
     func fetchTodayTasks() -> [TodoTask] {
         let allActiveTasks = fetchActiveTasks()
 
         // MARK: - Task Filtering Logic
-        // Recurring tasks: Show if NOT completed today (will reappear tomorrow)
-        // Non-recurring tasks: Show if NEVER completed (one-time tasks)
         return allActiveTasks.filter { task in
-            if task.isRecurring {
+            // First check if the task should show based on recurrence pattern
+            guard task.shouldShowToday() else { return false }
+
+            if task.recurrenceType != .none {
                 // Recurring: show if not completed today
                 return !task.isCompletedToday()
             } else {
