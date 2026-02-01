@@ -79,10 +79,15 @@ struct TodayTasksProvider: TimelineProvider {
 
         let allTasks = (try? context.fetch(descriptor)) ?? []
 
+        // Ensure completions relationship is loaded for each task
+        for task in allTasks {
+            _ = task.completions?.count
+        }
+
         // Filter tasks that belong to today's list:
         // - Check shouldShowToday() for recurrence pattern (weekly/monthly filtering)
-        // - Recurring tasks (daily/weekly/monthly): show if scheduled for today
-        // - Non-recurring tasks: show if never completed OR completed today
+        // - Recurring tasks (daily/weekly/monthly): show if scheduled for today AND not completed
+        // - Non-recurring tasks: show if never completed
         var todayTasks: [(task: TodoTask, isCompleted: Bool)] = []
 
         for task in allTasks {
@@ -92,46 +97,68 @@ struct TodayTasksProvider: TimelineProvider {
             let isCompletedToday = task.isCompletedToday()
 
             if task.recurrenceType != .none {
-                // Recurring task that's scheduled for today - include it
-                todayTasks.append((task, isCompletedToday))
+                // Recurring task scheduled for today - only show if NOT completed today
+                if !isCompletedToday {
+                    todayTasks.append((task, false))
+                }
             } else {
+                // Non-recurring task
                 let hasAnyCompletions = !(task.completions?.isEmpty ?? true)
                 if !hasAnyCompletions {
-                    // Never completed - include
+                    // Never completed - include as incomplete
                     todayTasks.append((task, false))
-                } else if isCompletedToday {
-                    // Has completions but completed today - include
-                    todayTasks.append((task, true))
                 }
-                // If has completions but not today, exclude (finished non-recurring)
+                // If has any completions, exclude (finished non-recurring task)
             }
         }
 
-        // Sort: incomplete tasks first, then completed tasks at the end
-        todayTasks.sort { item1, item2 in
-            if item1.isCompleted == item2.isCompleted {
-                return item1.task.sortOrder < item2.task.sortOrder
-            }
-            return !item1.isCompleted && item2.isCompleted
-        }
+        // Sort by sortOrder
+        todayTasks.sort { $0.task.sortOrder < $1.task.sortOrder }
 
-        let completedCount = todayTasks.filter { $0.isCompleted }.count
-
+        // For widget display: only show incomplete tasks
+        // completedCount = 0 since we only show incomplete tasks
+        // totalCount = number of incomplete tasks for today
         let widgetTasks = todayTasks.map { item in
             WidgetTask(
                 id: item.task.id,
                 title: item.task.title,
                 category: item.task.category,
-                isRecurring: item.task.isRecurring,
+                isRecurring: item.task.recurrenceType != .none,
                 isCompletedToday: item.isCompleted
             )
+        }
+
+        // Calculate actual completion stats from ALL tasks that should show today
+        // (including completed ones for the progress calculation)
+        var allTodayTaskCount = 0
+        var completedTodayCount = 0
+
+        for task in allTasks {
+            guard task.shouldShowToday() else { continue }
+
+            if task.recurrenceType != .none {
+                // Recurring task scheduled for today
+                allTodayTaskCount += 1
+                if task.isCompletedToday() {
+                    completedTodayCount += 1
+                }
+            } else {
+                // Non-recurring: only count if never completed OR completed today
+                let hasAnyCompletions = !(task.completions?.isEmpty ?? true)
+                if !hasAnyCompletions {
+                    allTodayTaskCount += 1
+                } else if task.isCompletedToday() {
+                    allTodayTaskCount += 1
+                    completedTodayCount += 1
+                }
+            }
         }
 
         return TaskEntry(
             date: Date(),
             tasks: widgetTasks,
-            completedCount: completedCount,
-            totalCount: todayTasks.count
+            completedCount: completedTodayCount,
+            totalCount: allTodayTaskCount
         )
     }
 }
