@@ -24,7 +24,8 @@ struct TodayTasksEntryView: View {
                 .padding(.vertical, 28)
         case .systemLarge:
             LargeWidgetView(entry: entry)
-                .padding(16)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 24)
         default:
             SmallWidgetView(entry: entry)
                 .padding(16)

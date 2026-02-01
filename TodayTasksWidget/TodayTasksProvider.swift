@@ -80,15 +80,19 @@ struct TodayTasksProvider: TimelineProvider {
         let allTasks = (try? context.fetch(descriptor)) ?? []
 
         // Filter tasks that belong to today's list:
-        // - Recurring tasks: always show (completed today or not)
+        // - Check shouldShowToday() for recurrence pattern (weekly/monthly filtering)
+        // - Recurring tasks (daily/weekly/monthly): show if scheduled for today
         // - Non-recurring tasks: show if never completed OR completed today
         var todayTasks: [(task: TodoTask, isCompleted: Bool)] = []
 
         for task in allTasks {
+            // First check if task should show today based on recurrence pattern
+            guard task.shouldShowToday() else { continue }
+
             let isCompletedToday = task.isCompletedToday()
 
-            if task.isRecurring {
-                // Always include recurring tasks
+            if task.recurrenceType != .none {
+                // Recurring task that's scheduled for today - include it
                 todayTasks.append((task, isCompletedToday))
             } else {
                 let hasAnyCompletions = !(task.completions?.isEmpty ?? true)
