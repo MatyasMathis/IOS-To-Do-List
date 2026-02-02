@@ -26,6 +26,7 @@ struct HistoryView: View {
     // MARK: - State
 
     @State private var refreshID = UUID()
+    @State private var showStats = false
 
     // MARK: - Queries
 
@@ -77,16 +78,15 @@ struct HistoryView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Stats button placeholder for future feature
                     Button {
-                        // Future: Show stats view
+                        showStats = true
                     } label: {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "chart.bar.fill")
                             Text("Stats")
                         }
                         .font(.system(size: Typography.bodySize, weight: .medium))
-                        .foregroundStyle(Color.mediumGray)
+                        .foregroundStyle(Color.recoveryGreen)
                     }
                 }
             }
@@ -99,6 +99,9 @@ struct HistoryView: View {
                 }
             }
             .id(refreshID)
+            .sheet(isPresented: $showStats) {
+                StatsView()
+            }
         }
     }
 
