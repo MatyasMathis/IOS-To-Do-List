@@ -82,10 +82,12 @@ struct HistoryView: View {
                         Spacer()
                         HStack {
                             Spacer()
-                            floatingCalendarButton
+                            FloatingActionButton(icon: "calendar") {
+                                showCalendarSheet = true
+                            }
+                            .padding(.trailing, Spacing.xxl)
+                            .padding(.bottom, 80)
                         }
-                        .padding(.trailing, Spacing.lg)
-                        .padding(.bottom, Spacing.lg)
                     }
                 }
             }
@@ -160,25 +162,6 @@ struct HistoryView: View {
             .onAppear {
                 scrollProxy = proxy
             }
-        }
-    }
-
-    private var floatingCalendarButton: some View {
-        Button {
-            showCalendarSheet = true
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 18, weight: .semibold))
-                Text("Jump to Date")
-                    .font(.system(size: Typography.bodySize, weight: .semibold))
-            }
-            .foregroundStyle(Color.brandBlack)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(Color.recoveryGreen)
-            .clipShape(Capsule())
-            .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
         }
     }
 

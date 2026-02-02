@@ -87,11 +87,17 @@ struct GhostButtonStyle: ButtonStyle {
 
 // MARK: - Floating Action Button
 
-/// Floating action button for adding new tasks
+/// Floating action button for primary actions
 struct FloatingActionButton: View {
+    let icon: String
     let action: () -> Void
 
     @State private var isPressed = false
+
+    init(icon: String = "plus", action: @escaping () -> Void) {
+        self.icon = icon
+        self.action = action
+    }
 
     var body: some View {
         Button(action: {
@@ -112,7 +118,7 @@ struct FloatingActionButton: View {
                     .frame(width: ComponentSize.fab, height: ComponentSize.fab)
                     .shadowLevel2()
 
-                Image(systemName: "plus")
+                Image(systemName: icon)
                     .font(.system(size: ComponentSize.fabIcon, weight: .bold))
                     .foregroundStyle(Color.pureWhite)
             }
