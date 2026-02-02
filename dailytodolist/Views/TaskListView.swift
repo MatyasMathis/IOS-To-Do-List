@@ -27,6 +27,7 @@ struct TaskListView: View {
     // MARK: - State
 
     @State private var isShowingAddSheet = false
+    @State private var taskToEdit: TodoTask?
     @State private var todayTasks: [TodoTask] = []
     @State private var editMode: EditMode = .inactive
     @State private var refreshID = UUID()
@@ -125,6 +126,14 @@ struct TaskListView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+            .sheet(item: $taskToEdit) { task in
+                AddTaskSheet(taskToEdit: task) {
+                    // onDelete callback - refresh the list
+                    updateTodayTasks()
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
             .onAppear {
                 updateTodayTasks()
             }
@@ -163,6 +172,9 @@ struct TaskListView: View {
                     tasks: $todayTasks,
                     onComplete: { task in
                         completeTask(task)
+                    },
+                    onEdit: { task in
+                        taskToEdit = task
                     },
                     onDelete: { task in
                         deleteTask(task)

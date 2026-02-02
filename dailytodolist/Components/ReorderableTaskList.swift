@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 struct ReorderableTaskList: View {
     @Binding var tasks: [TodoTask]
     let onComplete: (TodoTask) -> Void
+    let onEdit: (TodoTask) -> Void
     let onDelete: (TodoTask) -> Void
     let onReorder: ([TodoTask]) -> Void
 
@@ -20,10 +21,22 @@ struct ReorderableTaskList: View {
     var body: some View {
         VStack(spacing: Spacing.sm) {
             ForEach(tasks) { task in
-                TaskRow(task: task) { completedTask in
-                    onComplete(completedTask)
-                }
+                TaskRow(
+                    task: task,
+                    onComplete: { completedTask in
+                        onComplete(completedTask)
+                    },
+                    onEdit: { taskToEdit in
+                        onEdit(taskToEdit)
+                    }
+                )
                 .contextMenu {
+                    Button {
+                        onEdit(task)
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
                     Button(role: .destructive) {
                         onDelete(task)
                     } label: {
