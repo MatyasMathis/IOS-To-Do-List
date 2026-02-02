@@ -24,13 +24,9 @@ struct MediumWidgetView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Header row
             HStack {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.square")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text("TODAY'S TASKS")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .foregroundStyle(Color.widgetMediumGray)
+                Text("DAILY PROGRESS")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.widgetMediumGray)
 
                 Spacer()
 

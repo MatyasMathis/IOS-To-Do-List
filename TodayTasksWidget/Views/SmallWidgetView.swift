@@ -18,15 +18,9 @@ struct SmallWidgetView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            // Header
-            HStack {
-                Image(systemName: "checkmark.square")
-                    .font(.system(size: 10, weight: .semibold))
-                Text("TODAY")
-                    .font(.system(size: 10, weight: .semibold))
-                Spacer()
-            }
-            .foregroundStyle(Color.widgetMediumGray)
+            Text("DAILY PROGRESS")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color.widgetMediumGray)
 
             Spacer()
 

@@ -26,15 +26,6 @@ struct LargeWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Header
-            HStack(spacing: 4) {
-                Image(systemName: "checkmark.square")
-                    .font(.system(size: 13, weight: .semibold))
-                Text("TODAY'S TASKS")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .foregroundStyle(Color.widgetMediumGray)
-
             // Progress card
             VStack(alignment: .leading, spacing: 6) {
                 Text("DAILY PROGRESS")
