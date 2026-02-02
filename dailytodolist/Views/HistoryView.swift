@@ -28,9 +28,9 @@ struct HistoryView: View {
 
     @State private var refreshID = UUID()
     @State private var showStats = false
+    @State private var showCalendarSheet = false
     @State private var calendarMonth = Date()
-    @State private var isCalendarExpanded = false
-    @State private var scrollTarget: Date?
+    @State private var scrollProxy: ScrollViewProxy?
 
     // MARK: - Queries
 
@@ -75,6 +75,19 @@ struct HistoryView: View {
                 } else {
                     historyListView
                 }
+
+                // Floating calendar button
+                if !completions.isEmpty {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            floatingCalendarButton
+                        }
+                        .padding(.trailing, Spacing.lg)
+                        .padding(.bottom, Spacing.lg)
+                    }
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -110,6 +123,9 @@ struct HistoryView: View {
             .sheet(isPresented: $showStats) {
                 StatsView()
             }
+            .sheet(isPresented: $showCalendarSheet) {
+                calendarSheet
+            }
         }
     }
 
@@ -118,51 +134,159 @@ struct HistoryView: View {
     private var historyListView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: Spacing.md) {
-                    // Calendar for date navigation
-                    HistoryCalendar(
-                        completionDates: completionDatesSet,
-                        displayedMonth: $calendarMonth,
-                        isExpanded: $isCalendarExpanded
-                    ) { selectedDate in
-                        scrollToDate(selectedDate, proxy: proxy)
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.top, Spacing.sm)
-
-                    // History list
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        ForEach(sortedDates, id: \.self) { date in
-                            Section {
-                                VStack(spacing: Spacing.sm) {
-                                    if let dateCompletions = groupedCompletions[date] {
-                                        ForEach(dateCompletions) { completion in
-                                            HistoryRow(completion: completion)
-                                        }
+                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    ForEach(sortedDates, id: \.self) { date in
+                        Section {
+                            VStack(spacing: Spacing.sm) {
+                                if let dateCompletions = groupedCompletions[date] {
+                                    ForEach(dateCompletions) { completion in
+                                        HistoryRow(completion: completion)
                                     }
                                 }
-                                .padding(.horizontal, Spacing.lg)
-                                .padding(.bottom, Spacing.lg)
-                            } header: {
-                                SectionHeader(title: formatDateHeader(date))
                             }
-                            .id(date)
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.vertical, Spacing.md)
+                        } header: {
+                            SectionHeader(title: formatDateHeader(date))
                         }
+                        .id(date)
                     }
                 }
+                .padding(.bottom, 80) // Space for floating button
             }
             .refreshable {
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
-            .onChange(of: scrollTarget) { _, newTarget in
-                if let target = newTarget {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        proxy.scrollTo(target, anchor: .top)
+            .onAppear {
+                scrollProxy = proxy
+            }
+        }
+    }
+
+    private var floatingCalendarButton: some View {
+        Button {
+            showCalendarSheet = true
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 18, weight: .semibold))
+                Text("Jump to Date")
+                    .font(.system(size: Typography.bodySize, weight: .semibold))
+            }
+            .foregroundStyle(Color.brandBlack)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(Color.recoveryGreen)
+            .clipShape(Capsule())
+            .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
+    }
+
+    private var calendarSheet: some View {
+        NavigationStack {
+            ZStack {
+                Color.brandBlack.ignoresSafeArea()
+
+                VStack(spacing: Spacing.lg) {
+                    // Calendar (always expanded in sheet)
+                    calendarContent
+                        .padding(.horizontal, Spacing.lg)
+
+                    Spacer()
+                }
+                .padding(.top, Spacing.md)
+            }
+            .navigationTitle("Jump to Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        showCalendarSheet = false
                     }
-                    scrollTarget = nil
+                    .foregroundStyle(Color.recoveryGreen)
+                }
+            }
+            .toolbarBackground(Color.brandBlack, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var calendarContent: some View {
+        VStack(spacing: Spacing.md) {
+            // Month navigation
+            HStack {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: calendarMonth) {
+                            calendarMonth = previousMonth
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.pureWhite)
+                        .frame(width: 44, height: 44)
+                }
+
+                Spacer()
+
+                VStack(spacing: 2) {
+                    Text(monthTitle)
+                        .font(.system(size: Typography.captionSize, weight: .bold))
+                        .foregroundStyle(Color.pureWhite)
+                        .tracking(1.2)
+
+                    Text("\(completionCountForMonth) completion\(completionCountForMonth == 1 ? "" : "s")")
+                        .font(.system(size: Typography.captionSize, weight: .medium))
+                        .foregroundStyle(Color.mediumGray)
+                }
+
+                Spacer()
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if let nextMonth = Calendar.current.date(byAdding: .month, value: 1, to: calendarMonth) {
+                            calendarMonth = nextMonth
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(canGoToNextMonth ? Color.pureWhite : Color.darkGray2)
+                        .frame(width: 44, height: 44)
+                }
+                .disabled(!canGoToNextMonth)
+            }
+
+            // Days of week header
+            HStack(spacing: 0) {
+                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: Typography.captionSize, weight: .semibold))
+                        .foregroundStyle(Color.mediumGray)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            // Calendar grid
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+
+            LazyVGrid(columns: columns, spacing: 6) {
+                ForEach(daysInMonth) { day in
+                    CalendarDayCell(day: day) {
+                        if let date = day.date, day.hasCompletions {
+                            scrollToDate(date)
+                            showCalendarSheet = false
+                        }
+                    }
                 }
             }
         }
+        .padding(Spacing.lg)
+        .background(Color.darkGray1)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
     }
 
     private var emptyStateView: some View {
@@ -173,9 +297,78 @@ struct HistoryView: View {
         )
     }
 
+    // MARK: - Calendar Computed Properties
+
+    private var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: calendarMonth).uppercased()
+    }
+
+    private var completionCountForMonth: Int {
+        let calendar = Calendar.current
+        let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: calendarMonth))!
+        let nextMonth = calendar.date(byAdding: .month, value: 1, to: monthStart)!
+
+        return completionDatesSet.filter { $0 >= monthStart && $0 < nextMonth }.count
+    }
+
+    private var canGoToNextMonth: Bool {
+        let calendar = Calendar.current
+        guard let nextMonth = calendar.date(byAdding: .month, value: 1, to: calendarMonth) else {
+            return false
+        }
+        let nextMonthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: nextMonth))!
+        let today = calendar.startOfDay(for: Date())
+        return nextMonthStart <= today
+    }
+
+    private var daysInMonth: [CalendarDay] {
+        let calendar = Calendar.current
+        var days: [CalendarDay] = []
+
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: calendarMonth)),
+              let monthRange = calendar.range(of: .day, in: .month, for: calendarMonth) else {
+            return days
+        }
+
+        // Get the weekday of the first day (1 = Sunday, 2 = Monday, etc.)
+        let firstWeekday = calendar.component(.weekday, from: monthStart)
+        // Convert to Monday-based (0 = Monday, 6 = Sunday)
+        let leadingEmptyDays = (firstWeekday + 5) % 7
+
+        // Add empty days for alignment
+        for _ in 0..<leadingEmptyDays {
+            days.append(CalendarDay(date: nil, dayNumber: 0))
+        }
+
+        // Add actual days
+        let today = calendar.startOfDay(for: Date())
+        for day in monthRange {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: monthStart) {
+                let startOfDate = calendar.startOfDay(for: date)
+                let hasCompletions = completionDatesSet.contains(startOfDate)
+                let isToday = startOfDate == today
+                let isFuture = startOfDate > today
+
+                days.append(CalendarDay(
+                    date: startOfDate,
+                    dayNumber: day,
+                    hasCompletions: hasCompletions,
+                    isToday: isToday,
+                    isFuture: isFuture
+                ))
+            }
+        }
+
+        return days
+    }
+
     // MARK: - Methods
 
-    private func scrollToDate(_ date: Date, proxy: ScrollViewProxy) {
+    private func scrollToDate(_ date: Date) {
+        guard let proxy = scrollProxy else { return }
+
         let calendar = Calendar.current
         let targetDate = calendar.startOfDay(for: date)
 
@@ -204,6 +397,74 @@ struct HistoryView: View {
             return "Yesterday"
         } else {
             return date.formatted(.dateTime.month(.abbreviated).day().year())
+        }
+    }
+}
+
+// MARK: - Calendar Day Model
+
+private struct CalendarDay: Identifiable {
+    let id = UUID()
+    let date: Date?
+    let dayNumber: Int
+    var hasCompletions: Bool = false
+    var isToday: Bool = false
+    var isFuture: Bool = false
+}
+
+// MARK: - Calendar Day Cell
+
+private struct CalendarDayCell: View {
+    let day: CalendarDay
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Background
+                if day.date != nil {
+                    Circle()
+                        .fill(backgroundColor)
+                        .frame(width: 36, height: 36)
+
+                    // Today outline
+                    if day.isToday {
+                        Circle()
+                            .strokeBorder(Color.pureWhite, lineWidth: 2)
+                            .frame(width: 36, height: 36)
+                    }
+                }
+
+                // Day number
+                if day.dayNumber > 0 {
+                    Text("\(day.dayNumber)")
+                        .font(.system(size: 15, weight: day.isToday ? .bold : .medium))
+                        .foregroundStyle(textColor)
+                }
+            }
+            .frame(height: 40)
+        }
+        .buttonStyle(.plain)
+        .disabled(day.date == nil || day.isFuture || !day.hasCompletions)
+    }
+
+    private var backgroundColor: Color {
+        if day.hasCompletions {
+            return Color.recoveryGreen
+        } else if day.isFuture {
+            return Color.clear
+        } else {
+            return Color.darkGray2
+        }
+    }
+
+    private var textColor: Color {
+        if day.isFuture {
+            return Color.darkGray2
+        } else if day.hasCompletions {
+            return Color.brandBlack
+        } else {
+            return Color.mediumGray
         }
     }
 }
