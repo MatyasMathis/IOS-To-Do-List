@@ -3,7 +3,7 @@
 //  dailytodolist
 //
 //  Purpose: Display history of completed tasks with Whoop-inspired design
-//  Design: Dark theme with section headers and card-based rows
+//  Design: Dark theme with calendar navigation, section headers, and card-based rows
 //
 
 import SwiftUI
@@ -12,6 +12,7 @@ import SwiftData
 /// View for displaying completed tasks history with Whoop-inspired styling
 ///
 /// Features:
+/// - Collapsible calendar for quick date navigation
 /// - Dark theme background
 /// - Styled section headers (Today, Yesterday, dates)
 /// - Card-based completion rows
@@ -27,6 +28,9 @@ struct HistoryView: View {
 
     @State private var refreshID = UUID()
     @State private var showStats = false
+    @State private var calendarMonth = Date()
+    @State private var isCalendarExpanded = false
+    @State private var scrollTarget: Date?
 
     // MARK: - Queries
 
@@ -52,6 +56,10 @@ struct HistoryView: View {
 
     private var sortedDates: [Date] {
         groupedCompletions.keys.sorted(by: >)
+    }
+
+    private var completionDatesSet: Set<Date> {
+        Set(groupedCompletions.keys)
     }
 
     // MARK: - Body
@@ -108,28 +116,52 @@ struct HistoryView: View {
     // MARK: - Subviews
 
     private var historyListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                ForEach(sortedDates, id: \.self) { date in
-                    Section {
-                        VStack(spacing: Spacing.sm) {
-                            if let dateCompletions = groupedCompletions[date] {
-                                ForEach(dateCompletions) { completion in
-                                    HistoryRow(completion: completion)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: Spacing.md) {
+                    // Calendar for date navigation
+                    HistoryCalendar(
+                        completionDates: completionDatesSet,
+                        displayedMonth: $calendarMonth,
+                        isExpanded: $isCalendarExpanded
+                    ) { selectedDate in
+                        scrollToDate(selectedDate, proxy: proxy)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.sm)
+
+                    // History list
+                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                        ForEach(sortedDates, id: \.self) { date in
+                            Section {
+                                VStack(spacing: Spacing.sm) {
+                                    if let dateCompletions = groupedCompletions[date] {
+                                        ForEach(dateCompletions) { completion in
+                                            HistoryRow(completion: completion)
+                                        }
+                                    }
                                 }
+                                .padding(.horizontal, Spacing.lg)
+                                .padding(.bottom, Spacing.lg)
+                            } header: {
+                                SectionHeader(title: formatDateHeader(date))
                             }
+                            .id(date)
                         }
-                        .padding(.horizontal, Spacing.lg)
-                        .padding(.bottom, Spacing.lg)
-                    } header: {
-                        SectionHeader(title: formatDateHeader(date))
                     }
                 }
             }
-            .padding(.top, Spacing.sm)
-        }
-        .refreshable {
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            .refreshable {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+            }
+            .onChange(of: scrollTarget) { _, newTarget in
+                if let target = newTarget {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(target, anchor: .top)
+                    }
+                    scrollTarget = nil
+                }
+            }
         }
     }
 
@@ -142,6 +174,26 @@ struct HistoryView: View {
     }
 
     // MARK: - Methods
+
+    private func scrollToDate(_ date: Date, proxy: ScrollViewProxy) {
+        let calendar = Calendar.current
+        let targetDate = calendar.startOfDay(for: date)
+
+        // Find the closest date in our sorted dates
+        if sortedDates.contains(targetDate) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                proxy.scrollTo(targetDate, anchor: .top)
+            }
+        } else {
+            // Find the closest date after the selected date
+            let closestDate = sortedDates.first { $0 <= targetDate }
+            if let closest = closestDate {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    proxy.scrollTo(closest, anchor: .top)
+                }
+            }
+        }
+    }
 
     private func formatDateHeader(_ date: Date) -> String {
         let calendar = Calendar.current
@@ -164,13 +216,21 @@ struct HistoryView: View {
 
     let task1 = TodoTask(title: "Morning meditation", category: "Health", isRecurring: true)
     let task2 = TodoTask(title: "Buy groceries", category: "Shopping")
+    let task3 = TodoTask(title: "Team meeting", category: "Work")
     container.mainContext.insert(task1)
     container.mainContext.insert(task2)
+    container.mainContext.insert(task3)
 
-    let completion1 = TaskCompletion(task: task1, completedAt: Date())
-    let completion2 = TaskCompletion(task: task2, completedAt: Date().addingTimeInterval(-3600))
-    container.mainContext.insert(completion1)
-    container.mainContext.insert(completion2)
+    // Add completions for various dates
+    let calendar = Calendar.current
+    for daysAgo in [0, 0, 1, 1, 2, 3, 5, 8, 10, 15, 20] {
+        if let date = calendar.date(byAdding: .day, value: -daysAgo, to: Date()),
+           let dateWithTime = calendar.date(bySettingHour: Int.random(in: 8...18), minute: Int.random(in: 0...59), second: 0, of: date) {
+            let task = [task1, task2, task3].randomElement()!
+            let completion = TaskCompletion(task: task, completedAt: dateWithTime)
+            container.mainContext.insert(completion)
+        }
+    }
 
     return HistoryView()
         .modelContainer(container)
