@@ -35,8 +35,8 @@ struct CompletionCalendar: View {
         return formatter.string(from: displayedMonth).uppercased()
     }
 
-    private var daysInMonth: [CalendarDay] {
-        var days: [CalendarDay] = []
+    private var daysInMonth: [StatsCalendarDay] {
+        var days: [StatsCalendarDay] = []
 
         // Get the first day of the month
         guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth)),
@@ -51,7 +51,7 @@ struct CompletionCalendar: View {
 
         // Add empty days for alignment
         for _ in 0..<leadingEmptyDays {
-            days.append(CalendarDay(date: nil, dayNumber: 0))
+            days.append(StatsCalendarDay(date: nil, dayNumber: 0))
         }
 
         // Add actual days
@@ -63,7 +63,7 @@ struct CompletionCalendar: View {
                 let isToday = startOfDate == today
                 let isFuture = startOfDate > today
 
-                days.append(CalendarDay(
+                days.append(StatsCalendarDay(
                     date: startOfDate,
                     dayNumber: day,
                     isCompleted: isCompleted,
@@ -134,7 +134,7 @@ struct CompletionCalendar: View {
 
             LazyVGrid(columns: columns, spacing: Spacing.sm) {
                 ForEach(daysInMonth) { day in
-                    CalendarDayCell(day: day) {
+                    StatsCalendarDayCell(day: day) {
                         if let date = day.date {
                             onDateTapped?(date)
                         }
@@ -161,7 +161,7 @@ struct CompletionCalendar: View {
 
 // MARK: - Calendar Day Model
 
-struct CalendarDay: Identifiable {
+private struct StatsCalendarDay: Identifiable {
     let id = UUID()
     let date: Date?
     let dayNumber: Int
@@ -172,8 +172,8 @@ struct CalendarDay: Identifiable {
 
 // MARK: - Calendar Day Cell
 
-struct CalendarDayCell: View {
-    let day: CalendarDay
+private struct StatsCalendarDayCell: View {
+    let day: StatsCalendarDay
     let onTap: () -> Void
 
     var body: some View {
