@@ -28,6 +28,7 @@ struct StatsView: View {
     @State private var searchText: String = ""
     @State private var isDropdownExpanded: Bool = false
     @State private var displayedMonth: Date = Date()
+    @State private var showEditSheet: Bool = false
 
     // MARK: - Body
 
@@ -59,6 +60,9 @@ struct StatsView: View {
 
                             // Stats bar
                             TaskStatsBar(task: task)
+
+                            // Edit Task button
+                            editTaskButton
 
                             // History list
                             CompletionHistoryList(task: task)
@@ -100,9 +104,35 @@ struct StatsView: View {
                 selectedTask = firstTask
             }
         }
+        .sheet(isPresented: $showEditSheet) {
+            if let task = selectedTask {
+                EditTaskSheet(task: task) {
+                    // On delete: clear selection
+                    selectedTask = nil
+                }
+            }
+        }
     }
 
     // MARK: - Subviews
+
+    private var editTaskButton: some View {
+        Button {
+            showEditSheet = true
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Edit Task")
+                    .font(.system(size: Typography.bodySize, weight: .medium))
+            }
+            .foregroundStyle(Color.pureWhite)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md)
+            .background(Color.darkGray2)
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+        }
+    }
 
     private var selectTaskPrompt: some View {
         VStack(spacing: Spacing.lg) {

@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-/// Displays key statistics for a task: total completions, current streak, completion rate
+/// Displays key statistics for a task: total completions and completion rate
 struct TaskStatsBar: View {
 
     // MARK: - Properties
@@ -23,10 +23,6 @@ struct TaskStatsBar: View {
 
     private var totalCompletions: Int {
         task.completions?.count ?? 0
-    }
-
-    private var currentStreak: Int {
-        calculateStreak()
     }
 
     private var completionRate: Double? {
@@ -70,17 +66,6 @@ struct TaskStatsBar: View {
                 .frame(height: 40)
                 .background(Color.darkGray2)
 
-            // Streak
-            StatItem(
-                label: "STREAK",
-                value: currentStreak > 0 ? "\(currentStreak) day\(currentStreak == 1 ? "" : "s")" : "—",
-                color: currentStreak > 0 ? .recoveryGreen : .mediumGray
-            )
-
-            Divider()
-                .frame(height: 40)
-                .background(Color.darkGray2)
-
             // Rate
             StatItem(
                 label: "RATE",
@@ -100,17 +85,6 @@ struct TaskStatsBar: View {
                 label: "TOTAL",
                 value: "\(totalCompletions)",
                 color: .pureWhite
-            )
-
-            Divider()
-                .frame(height: 40)
-                .background(Color.darkGray2)
-
-            // Streak
-            StatItem(
-                label: "STREAK",
-                value: currentStreak > 0 ? "\(currentStreak) day\(currentStreak == 1 ? "" : "s")" : "—",
-                color: currentStreak > 0 ? .recoveryGreen : .mediumGray
             )
 
             Divider()
@@ -158,37 +132,6 @@ struct TaskStatsBar: View {
         } else {
             return .strainRed
         }
-    }
-
-    private func calculateStreak() -> Int {
-        guard let completions = task.completions, !completions.isEmpty else { return 0 }
-
-        let sortedDates = Set(completions.map { calendar.startOfDay(for: $0.completedAt) })
-            .sorted(by: >)
-
-        var streak = 0
-        var expectedDate = calendar.startOfDay(for: Date())
-
-        for date in sortedDates {
-            if date == expectedDate {
-                streak += 1
-                if let previousDay = calendar.date(byAdding: .day, value: -1, to: expectedDate) {
-                    expectedDate = previousDay
-                }
-            } else if date < expectedDate {
-                // Allow for today not being completed yet - check if yesterday was completed
-                if streak == 0 {
-                    if let yesterday = calendar.date(byAdding: .day, value: -1, to: expectedDate),
-                       date == yesterday {
-                        streak += 1
-                        expectedDate = calendar.date(byAdding: .day, value: -1, to: yesterday)!
-                        continue
-                    }
-                }
-                break
-            }
-        }
-        return streak
     }
 
     private func formatDate(_ date: Date) -> String {
