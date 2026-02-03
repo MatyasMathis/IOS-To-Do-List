@@ -243,8 +243,8 @@ struct TaskSuggestionRow: View {
                         existingTasks: [task1, task2, task3, task4],
                         text: $text,
                         isFocused: $isFocused
-                    ) { selectedTask in
-                        print("Selected: \(selectedTask.title)")
+                    ) { _ in
+                        // Handle selection in preview
                     }
                     .padding(Spacing.lg)
 

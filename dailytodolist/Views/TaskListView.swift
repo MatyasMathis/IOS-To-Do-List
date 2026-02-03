@@ -268,7 +268,7 @@ struct TaskListView: View {
                 _ = task.completions?.count
             }
         } catch {
-            print("Error refreshing from database: \(error)")
+            // Silently handle refresh errors
         }
 
         updateTodayTasks()

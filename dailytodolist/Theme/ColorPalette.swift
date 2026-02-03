@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 extension Color {
     // MARK: - Primary Colors

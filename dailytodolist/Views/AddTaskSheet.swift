@@ -76,6 +76,12 @@ struct AddTaskSheet: View {
         }
     }
 
+    /// Tomorrow's date for date picker minimum
+    private var tomorrow: Date {
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) ?? Date()
+    }
+
     /// The effective start date to save (nil if today or not using start date)
     private var effectiveStartDate: Date? {
         guard useStartDate && showStartDateOption else { return nil }
@@ -291,7 +297,7 @@ struct AddTaskSheet: View {
                 DatePicker(
                     "Start Date",
                     selection: $startDate,
-                    in: Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date()))!...,
+                    in: tomorrow...,
                     displayedComponents: .date
                 )
                 .datePickerStyle(.graphical)
@@ -308,7 +314,6 @@ struct AddTaskSheet: View {
     /// Formatted start date for display
     private var formattedStartDate: String {
         let calendar = Calendar.current
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
         let selectedDay = calendar.startOfDay(for: startDate)
 
         if selectedDay == tomorrow {

@@ -48,7 +48,7 @@ class TaskService {
         do {
             try modelContext.save()
         } catch {
-            print("Error saving context before widget refresh: \(error)")
+            // Silently handle save errors - widget will use stale data
         }
 
         // Reload widget timelines
@@ -144,7 +144,6 @@ class TaskService {
         do {
             return try modelContext.fetch(descriptor)
         } catch {
-            print("Error fetching active tasks: \(error)")
             return []
         }
     }
@@ -203,7 +202,6 @@ class TaskService {
             let tasks = try modelContext.fetch(descriptor)
             return tasks.first?.sortOrder ?? 0
         } catch {
-            print("Error fetching max sort order: \(error)")
             return 0
         }
     }
@@ -302,7 +300,6 @@ class TaskService {
         do {
             return try modelContext.fetch(descriptor)
         } catch {
-            print("Error fetching completions: \(error)")
             return []
         }
     }
@@ -318,7 +315,9 @@ class TaskService {
     func fetchCompletions(for date: Date) -> [TaskCompletion] {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
+            return []
+        }
 
         let descriptor = FetchDescriptor<TaskCompletion>(
             predicate: #Predicate { completion in
@@ -330,7 +329,6 @@ class TaskService {
         do {
             return try modelContext.fetch(descriptor)
         } catch {
-            print("Error fetching completions for date: \(error)")
             return []
         }
     }

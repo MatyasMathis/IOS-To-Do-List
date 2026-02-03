@@ -255,8 +255,8 @@ private struct StatsCalendarDayCell: View {
                     CompletionCalendar(
                         task: task,
                         displayedMonth: $displayedMonth
-                    ) { date in
-                        print("Tapped: \(date)")
+                    ) { _ in
+                        // Handle date tap in preview
                     }
                     .padding(Spacing.lg)
 
