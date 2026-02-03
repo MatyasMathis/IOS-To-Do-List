@@ -1,6 +1,6 @@
 //
 //  SharedModelContainer.swift
-//  Shared
+//  Tick
 //
 //  Purpose: Provides a shared SwiftData container accessible by both
 //  the main app and the widget extension via App Groups.
@@ -15,7 +15,7 @@ import Foundation
 /// accessible by both the main app and the widget extension.
 enum SharedModelContainer {
     /// The App Group identifier shared between app and widget
-    static let appGroupIdentifier = "group.com.dailytodolist.shared"
+    static let appGroupIdentifier = "group.com.tick.shared"
 
     /// Shared model container using App Group storage
     static var sharedModelContainer: ModelContainer = {
@@ -30,7 +30,7 @@ enum SharedModelContainer {
             fatalError("Failed to get App Group container URL for \(appGroupIdentifier)")
         }
 
-        let storeURL = containerURL.appendingPathComponent("dailytodolist.sqlite")
+        let storeURL = containerURL.appendingPathComponent("tick.sqlite")
 
         let configuration = ModelConfiguration(
             schema: schema,
