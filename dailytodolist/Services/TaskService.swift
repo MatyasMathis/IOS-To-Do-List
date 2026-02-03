@@ -68,6 +68,7 @@ class TaskService {
     ///   - recurrenceType: The type of recurrence pattern (default: .none)
     ///   - selectedWeekdays: Weekdays for weekly recurrence (1=Sun, 7=Sat)
     ///   - selectedMonthDays: Days for monthly recurrence (1-31)
+    ///   - startDate: Optional start date for scheduling future tasks
     /// - Returns: The newly created task
     @discardableResult
     func createTask(
@@ -75,7 +76,8 @@ class TaskService {
         category: String? = nil,
         recurrenceType: RecurrenceType = .none,
         selectedWeekdays: [Int] = [],
-        selectedMonthDays: [Int] = []
+        selectedMonthDays: [Int] = [],
+        startDate: Date? = nil
     ) -> TodoTask {
         // Get the current maximum sort order to place new task at end
         let maxSortOrder = fetchMaxSortOrder()
@@ -86,7 +88,8 @@ class TaskService {
             recurrenceType: recurrenceType,
             selectedWeekdays: selectedWeekdays,
             selectedMonthDays: selectedMonthDays,
-            sortOrder: maxSortOrder + 1
+            sortOrder: maxSortOrder + 1,
+            startDate: startDate
         )
 
         modelContext.insert(task)
@@ -105,19 +108,22 @@ class TaskService {
     ///   - recurrenceType: New recurrence pattern
     ///   - selectedWeekdays: New weekdays for weekly recurrence
     ///   - selectedMonthDays: New days for monthly recurrence
+    ///   - startDate: New start date (nil for immediate)
     func updateTask(
         _ task: TodoTask,
         title: String,
         category: String?,
         recurrenceType: RecurrenceType,
         selectedWeekdays: [Int],
-        selectedMonthDays: [Int]
+        selectedMonthDays: [Int],
+        startDate: Date? = nil
     ) {
         task.title = title
         task.category = category
         task.recurrenceType = recurrenceType
         task.selectedWeekdays = selectedWeekdays
         task.selectedMonthDays = selectedMonthDays
+        task.startDate = startDate
         refreshWidgets()
     }
 

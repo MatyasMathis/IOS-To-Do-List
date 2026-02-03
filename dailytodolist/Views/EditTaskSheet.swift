@@ -16,6 +16,7 @@ import SwiftData
 /// - Same UI as AddTaskSheet for consistency
 /// - Save Changes button updates the task
 /// - Delete option available
+/// - Start date selection for One-Time and Daily tasks
 struct EditTaskSheet: View {
 
     // MARK: - Environment
@@ -38,10 +39,18 @@ struct EditTaskSheet: View {
     @State private var recurrenceType: RecurrenceType = .none
     @State private var selectedWeekdays: [Int] = []
     @State private var selectedMonthDays: [Int] = []
+    @State private var startDate: Date = Calendar.current.startOfDay(for: Date())
+    @State private var useStartDate: Bool = false
+    @State private var showDatePicker: Bool = false
     @State private var showDeleteConfirmation: Bool = false
     @FocusState private var isTitleFocused: Bool
 
     // MARK: - Computed Properties
+
+    /// Whether start date picker should be available
+    private var showStartDateOption: Bool {
+        recurrenceType == .none || recurrenceType == .daily
+    }
 
     private var isFormValid: Bool {
         let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -57,6 +66,21 @@ struct EditTaskSheet: View {
         }
     }
 
+    /// The effective start date to save (nil if today or not using start date)
+    private var effectiveStartDate: Date? {
+        guard useStartDate && showStartDateOption else { return nil }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let selectedDay = calendar.startOfDay(for: startDate)
+
+        // Don't save startDate if it's today or earlier
+        if selectedDay <= today {
+            return nil
+        }
+        return selectedDay
+    }
+
     private var hasChanges: Bool {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let currentCategory = category.isEmpty ? nil : category
@@ -65,7 +89,8 @@ struct EditTaskSheet: View {
                currentCategory != task.category ||
                recurrenceType != task.recurrenceType ||
                selectedWeekdays != task.selectedWeekdays ||
-               selectedMonthDays != task.selectedMonthDays
+               selectedMonthDays != task.selectedMonthDays ||
+               effectiveStartDate != task.startDate
     }
 
     // MARK: - Body
@@ -90,6 +115,11 @@ struct EditTaskSheet: View {
                             selectedWeekdays: $selectedWeekdays,
                             selectedMonthDays: $selectedMonthDays
                         )
+
+                        // Start Date Section (only for One-Time and Daily)
+                        if showStartDateOption {
+                            startDateSection
+                        }
 
                         // Save Button
                         Button("Save Changes") {
@@ -142,6 +172,13 @@ struct EditTaskSheet: View {
             .onAppear {
                 loadTaskData()
             }
+            .onChange(of: recurrenceType) { _, newValue in
+                // Reset start date when switching to Weekly/Monthly
+                if newValue == .weekly || newValue == .monthly {
+                    useStartDate = false
+                    showDatePicker = false
+                }
+            }
             .confirmationDialog(
                 "Delete Task",
                 isPresented: $showDeleteConfirmation,
@@ -182,6 +219,105 @@ struct EditTaskSheet: View {
         }
     }
 
+    /// Start date selection section
+    private var startDateSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("START DATE")
+                .font(.system(size: Typography.labelSize, weight: .semibold))
+                .foregroundStyle(Color.mediumGray)
+
+            // Toggle row
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    if useStartDate {
+                        showDatePicker.toggle()
+                    } else {
+                        useStartDate = true
+                        showDatePicker = true
+                        // Default to tomorrow when enabling
+                        startDate = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+                    }
+                }
+            } label: {
+                HStack(spacing: Spacing.md) {
+                    Image(systemName: useStartDate ? "calendar.badge.clock" : "calendar")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(useStartDate ? Color.recoveryGreen : Color.mediumGray)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(useStartDate ? formattedStartDate : "Starts Today")
+                            .font(.system(size: Typography.bodySize, weight: .medium))
+                            .foregroundStyle(Color.pureWhite)
+
+                        Text(useStartDate ? "Task will appear on this date" : "Tap to schedule for later")
+                            .font(.system(size: Typography.captionSize, weight: .regular))
+                            .foregroundStyle(Color.mediumGray)
+                    }
+
+                    Spacer()
+
+                    if useStartDate {
+                        Button {
+                            withAnimation {
+                                useStartDate = false
+                                showDatePicker = false
+                                startDate = Calendar.current.startOfDay(for: Date())
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(Color.mediumGray)
+                        }
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                    }
+                }
+                .padding(Spacing.lg)
+                .background(Color.darkGray2)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.standard)
+                        .stroke(useStartDate ? Color.recoveryGreen.opacity(0.5) : Color.clear, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Date picker (expanded)
+            if showDatePicker {
+                DatePicker(
+                    "Start Date",
+                    selection: $startDate,
+                    in: Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date()))!...,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .tint(Color.recoveryGreen)
+                .colorScheme(.dark)
+                .padding(Spacing.md)
+                .background(Color.darkGray2)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    /// Formatted start date for display
+    private var formattedStartDate: String {
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
+        let selectedDay = calendar.startOfDay(for: startDate)
+
+        if selectedDay == tomorrow {
+            return "Tomorrow"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE, MMM d"
+            return formatter.string(from: startDate)
+        }
+    }
+
     // MARK: - Methods
 
     /// Loads the current task data into the form fields
@@ -191,6 +327,15 @@ struct EditTaskSheet: View {
         recurrenceType = task.recurrenceType
         selectedWeekdays = task.selectedWeekdays
         selectedMonthDays = task.selectedMonthDays
+
+        // Load start date
+        if let taskStartDate = task.startDate {
+            startDate = taskStartDate
+            useStartDate = true
+        } else {
+            startDate = Calendar.current.startOfDay(for: Date())
+            useStartDate = false
+        }
     }
 
     /// Saves the updated task
@@ -206,7 +351,8 @@ struct EditTaskSheet: View {
             category: taskCategory,
             recurrenceType: recurrenceType,
             selectedWeekdays: selectedWeekdays,
-            selectedMonthDays: selectedMonthDays
+            selectedMonthDays: selectedMonthDays,
+            startDate: effectiveStartDate
         )
 
         // Success haptic

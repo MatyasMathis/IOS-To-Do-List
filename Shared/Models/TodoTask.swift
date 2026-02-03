@@ -77,6 +77,10 @@ final class TodoTask {
     /// Flag indicating if the task is active (not deleted)
     var isActive: Bool
 
+    /// Optional start date for the task (nil = starts immediately)
+    /// Used for one-time and daily tasks to schedule them for a future date
+    var startDate: Date?
+
     // MARK: - Recurrence Properties
 
     /// The type of recurrence pattern (none, daily, weekly, monthly)
@@ -143,7 +147,8 @@ final class TodoTask {
         recurrenceType: RecurrenceType = .none,
         selectedWeekdays: [Int] = [],
         selectedMonthDays: [Int] = [],
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        startDate: Date? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -155,6 +160,7 @@ final class TodoTask {
         self.createdAt = Date()
         self.sortOrder = sortOrder
         self.isActive = true
+        self.startDate = startDate
         self.completions = []
     }
 
@@ -172,10 +178,19 @@ final class TodoTask {
         }
     }
 
-    /// Checks if the task should appear today based on its recurrence pattern
+    /// Checks if the task should appear today based on its recurrence pattern and start date
     func shouldShowToday() -> Bool {
         let calendar = Calendar.current
         let today = Date()
+        let todayStart = calendar.startOfDay(for: today)
+
+        // Check if task has started yet (startDate must be today or earlier)
+        if let startDate = startDate {
+            let startDateStart = calendar.startOfDay(for: startDate)
+            if startDateStart > todayStart {
+                return false
+            }
+        }
 
         switch recurrenceType {
         case .none:
@@ -192,6 +207,25 @@ final class TodoTask {
             // Monthly tasks: show only on selected dates
             let dayOfMonth = calendar.component(.day, from: today)
             return selectedMonthDays.isEmpty || selectedMonthDays.contains(dayOfMonth)
+        }
+    }
+
+    /// Returns a display string for the start date
+    var startDateDisplayString: String? {
+        guard let startDate = startDate else { return nil }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let startDay = calendar.startOfDay(for: startDate)
+
+        if startDay == today {
+            return "Today"
+        } else if startDay == calendar.date(byAdding: .day, value: 1, to: today) {
+            return "Tomorrow"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            return formatter.string(from: startDate)
         }
     }
 
