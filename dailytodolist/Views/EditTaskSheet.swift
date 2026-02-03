@@ -1,39 +1,36 @@
 //
-//  AddTaskSheet.swift
+//  EditTaskSheet.swift
 //  Tick
 //
-//  Purpose: Sheet view for creating new tasks with Whoop-inspired design
-//  Design: Dark theme with icon-based category selector and styled inputs
-//
-//  Features:
-//  - Autocomplete for existing tasks (prevents duplicates)
-//  - Edit mode when existing task is selected
-//  - Start date picker for One-Time and Daily tasks
+//  Purpose: Sheet view for editing existing tasks
+//  Features: Pre-filled form with current task values, save/cancel flow
 //
 
 import SwiftUI
 import SwiftData
 
-/// Sheet view for adding a new task with Whoop-inspired styling
+/// Sheet view for editing an existing task
 ///
 /// Features:
-/// - Dark theme with gradient backgrounds
-/// - Icon-based category grid selector
-/// - Radio button frequency selector
-/// - Autocomplete with existing task suggestions
-/// - Edit mode when selecting existing task
-/// - Start date selection for future tasks
-struct AddTaskSheet: View {
+/// - Pre-fills all fields with current task values
+/// - Same UI as AddTaskSheet for consistency
+/// - Save Changes button updates the task
+/// - Delete option available
+/// - Start date selection for One-Time and Daily tasks
+struct EditTaskSheet: View {
 
     // MARK: - Environment
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    // MARK: - Query
+    // MARK: - Properties
 
-    @Query(filter: #Predicate<TodoTask> { $0.isActive == true })
-    private var existingTasks: [TodoTask]
+    /// The task being edited
+    let task: TodoTask
+
+    /// Callback when task is deleted
+    var onDelete: (() -> Void)?
 
     // MARK: - State
 
@@ -45,17 +42,10 @@ struct AddTaskSheet: View {
     @State private var startDate: Date = Calendar.current.startOfDay(for: Date())
     @State private var useStartDate: Bool = false
     @State private var showDatePicker: Bool = false
+    @State private var showDeleteConfirmation: Bool = false
     @FocusState private var isTitleFocused: Bool
 
-    /// Task being edited (nil = create mode)
-    @State private var editingTask: TodoTask?
-
     // MARK: - Computed Properties
-
-    /// Whether we're in edit mode (updating existing task)
-    private var isEditMode: Bool {
-        editingTask != nil
-    }
 
     /// Whether start date picker should be available
     private var showStartDateOption: Bool {
@@ -84,11 +74,23 @@ struct AddTaskSheet: View {
         let today = calendar.startOfDay(for: Date())
         let selectedDay = calendar.startOfDay(for: startDate)
 
-        // Don't save startDate if it's today
+        // Don't save startDate if it's today or earlier
         if selectedDay <= today {
             return nil
         }
         return selectedDay
+    }
+
+    private var hasChanges: Bool {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentCategory = category.isEmpty ? nil : category
+
+        return trimmedTitle != task.title ||
+               currentCategory != task.category ||
+               recurrenceType != task.recurrenceType ||
+               selectedWeekdays != task.selectedWeekdays ||
+               selectedMonthDays != task.selectedMonthDays ||
+               effectiveStartDate != task.startDate
     }
 
     // MARK: - Body
@@ -101,13 +103,8 @@ struct AddTaskSheet: View {
 
                 ScrollView {
                     VStack(spacing: Spacing.section) {
-                        // Task Name Input with Autocomplete
+                        // Task Name Input
                         taskNameSection
-
-                        // Edit Mode Indicator
-                        if isEditMode {
-                            editModeIndicator
-                        }
 
                         // Category Selector
                         CategorySelector(selectedCategory: $category)
@@ -124,13 +121,27 @@ struct AddTaskSheet: View {
                             startDateSection
                         }
 
-                        // Create/Update Button
-                        Button(isEditMode ? "Update Task" : "Create Task") {
+                        // Save Button
+                        Button("Save Changes") {
                             saveTask()
                         }
                         .buttonStyle(.primary)
-                        .disabled(!isFormValid)
+                        .disabled(!isFormValid || !hasChanges)
                         .padding(.top, Spacing.sm)
+
+                        // Delete Button
+                        Button(role: .destructive) {
+                            showDeleteConfirmation = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Delete Task")
+                            }
+                            .font(.system(size: Typography.bodySize, weight: .medium))
+                            .foregroundStyle(Color.strainRed)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.md)
+                        }
                     }
                     .padding(Spacing.xl)
                 }
@@ -138,7 +149,7 @@ struct AddTaskSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(isEditMode ? "Edit Task" : "Add New Task")
+                    Text("Edit Task")
                         .font(.system(size: Typography.h3Size, weight: .bold))
                         .foregroundStyle(Color.pureWhite)
                 }
@@ -159,7 +170,7 @@ struct AddTaskSheet: View {
             .toolbarBackground(Color.darkGray1, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .onAppear {
-                isTitleFocused = true
+                loadTaskData()
             }
             .onChange(of: recurrenceType) { _, newValue in
                 // Reset start date when switching to Weekly/Monthly
@@ -168,57 +179,44 @@ struct AddTaskSheet: View {
                     showDatePicker = false
                 }
             }
+            .confirmationDialog(
+                "Delete Task",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    deleteTask()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Are you sure you want to delete this task? This action cannot be undone.")
+            }
         }
         .presentationBackground(Color.darkGray1)
     }
 
     // MARK: - Subviews
 
-    /// Task name input section with autocomplete
+    /// Task name input section
     private var taskNameSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("TASK NAME")
                 .font(.system(size: Typography.labelSize, weight: .semibold))
                 .foregroundStyle(Color.mediumGray)
 
-            TaskNameAutocomplete(
-                existingTasks: existingTasks,
-                text: $title,
-                isFocused: $isTitleFocused
-            ) { selectedTask in
-                switchToEditMode(for: selectedTask)
-            }
+            TextField("", text: $title, prompt: Text("Enter task name...")
+                .foregroundStyle(Color.mediumGray))
+                .font(.system(size: Typography.h4Size, weight: .medium))
+                .foregroundStyle(Color.pureWhite)
+                .padding(Spacing.lg)
+                .background(Color.darkGray2)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.standard)
+                        .stroke(isTitleFocused ? Color.recoveryGreen : Color.clear, lineWidth: 2)
+                )
+                .focused($isTitleFocused)
         }
-    }
-
-    /// Indicator showing we're editing an existing task
-    private var editModeIndicator: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "pencil.circle.fill")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color.workBlue)
-
-            Text("Editing existing task")
-                .font(.system(size: Typography.bodySize, weight: .medium))
-                .foregroundStyle(Color.workBlue)
-
-            Spacer()
-
-            Button {
-                clearEditMode()
-            } label: {
-                Text("Create New")
-                    .font(.system(size: Typography.captionSize, weight: .semibold))
-                    .foregroundStyle(Color.mediumGray)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.xs)
-                    .background(Color.darkGray2)
-                    .clipShape(Capsule())
-            }
-        }
-        .padding(Spacing.md)
-        .background(Color.workBlue.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
     }
 
     /// Start date selection section
@@ -322,73 +320,40 @@ struct AddTaskSheet: View {
 
     // MARK: - Methods
 
-    /// Switches to edit mode for the selected task
-    private func switchToEditMode(for task: TodoTask) {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            editingTask = task
-            title = task.title
-            category = task.category ?? ""
-            recurrenceType = task.recurrenceType
-            selectedWeekdays = task.selectedWeekdays
-            selectedMonthDays = task.selectedMonthDays
+    /// Loads the current task data into the form fields
+    private func loadTaskData() {
+        title = task.title
+        category = task.category ?? ""
+        recurrenceType = task.recurrenceType
+        selectedWeekdays = task.selectedWeekdays
+        selectedMonthDays = task.selectedMonthDays
 
-            // Set start date if task has one
-            if let taskStartDate = task.startDate {
-                startDate = taskStartDate
-                useStartDate = true
-            } else {
-                startDate = Calendar.current.startOfDay(for: Date())
-                useStartDate = false
-            }
-            showDatePicker = false
-            isTitleFocused = false
-        }
-    }
-
-    /// Clears edit mode and resets to create mode
-    private func clearEditMode() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            editingTask = nil
-            title = ""
-            category = ""
-            recurrenceType = .none
-            selectedWeekdays = []
-            selectedMonthDays = []
+        // Load start date
+        if let taskStartDate = task.startDate {
+            startDate = taskStartDate
+            useStartDate = true
+        } else {
             startDate = Calendar.current.startOfDay(for: Date())
             useStartDate = false
-            showDatePicker = false
-            isTitleFocused = true
         }
     }
 
+    /// Saves the updated task
     private func saveTask() {
         let taskService = TaskService(modelContext: modelContext)
 
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let taskCategory: String? = category.isEmpty ? nil : category
 
-        if let existingTask = editingTask {
-            // Update existing task
-            taskService.updateTask(
-                existingTask,
-                title: trimmedTitle,
-                category: taskCategory,
-                recurrenceType: recurrenceType,
-                selectedWeekdays: selectedWeekdays,
-                selectedMonthDays: selectedMonthDays,
-                startDate: effectiveStartDate
-            )
-        } else {
-            // Create new task
-            taskService.createTask(
-                title: trimmedTitle,
-                category: taskCategory,
-                recurrenceType: recurrenceType,
-                selectedWeekdays: selectedWeekdays,
-                selectedMonthDays: selectedMonthDays,
-                startDate: effectiveStartDate
-            )
-        }
+        taskService.updateTask(
+            task,
+            title: trimmedTitle,
+            category: taskCategory,
+            recurrenceType: recurrenceType,
+            selectedWeekdays: selectedWeekdays,
+            selectedMonthDays: selectedMonthDays,
+            startDate: effectiveStartDate
+        )
 
         // Success haptic
         let generator = UINotificationFeedbackGenerator()
@@ -396,11 +361,35 @@ struct AddTaskSheet: View {
 
         dismiss()
     }
+
+    /// Deletes the task
+    private func deleteTask() {
+        let taskService = TaskService(modelContext: modelContext)
+        taskService.deleteTask(task)
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
+
+        onDelete?()
+        dismiss()
+    }
 }
 
 // MARK: - Preview
 
 #Preview {
-    AddTaskSheet()
-        .modelContainer(for: [TodoTask.self, TaskCompletion.self], inMemory: true)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+
+    let task = TodoTask(
+        title: "Morning Workout",
+        category: "Health",
+        recurrenceType: .weekly,
+        selectedWeekdays: [2, 4, 6]
+    )
+    container.mainContext.insert(task)
+
+    return EditTaskSheet(task: task)
+        .modelContainer(container)
 }

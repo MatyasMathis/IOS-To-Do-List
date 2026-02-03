@@ -1,0 +1,192 @@
+//
+//  CelebrationOverlay.swift
+//  Tick
+//
+//  Purpose: Encouraging messages displayed when tasks are completed
+//  Design: Creates positive reinforcement with varied, motivating messages
+//
+
+import SwiftUI
+
+/// Collection of encouraging messages shown after task completion
+enum EncouragingMessages {
+
+    /// Variety of motivating messages to keep users engaged
+    static let messages: [String] = [
+        // Achievement focused
+        "Crushed it! 💪",
+        "You're on fire!",
+        "Unstoppable!",
+        "Beast mode!",
+        "Champion move!",
+
+        // Progress focused
+        "One step closer!",
+        "Progress made!",
+        "Momentum building!",
+        "Keep stacking wins!",
+        "Every tick counts!",
+
+        // Encouragement
+        "You've got this!",
+        "Way to go!",
+        "Nailed it!",
+        "Boom! Done!",
+        "That's the spirit!",
+
+        // Celebration
+        "Victory!",
+        "Yes! Another one!",
+        "Look at you go!",
+        "Winning!",
+        "Smooth!",
+
+        // Motivational
+        "Discipline pays off!",
+        "Future you says thanks!",
+        "Building greatness!",
+        "Stay relentless!",
+        "Consistency is key!",
+
+        // Fun & Playful
+        "Tick! ✓",
+        "Done and dusted!",
+        "Mic drop!",
+        "Easy money!",
+        "Like a boss!",
+
+        // Energy boosters
+        "Let's gooo!",
+        "Keep that energy!",
+        "Fired up!",
+        "No stopping you!",
+        "Absolute legend!"
+    ]
+
+    /// Returns a random encouraging message
+    static func random() -> String {
+        messages.randomElement() ?? "Great job!"
+    }
+}
+
+/// Animated overlay that displays an encouraging message after task completion
+struct CelebrationOverlay: View {
+
+    // MARK: - Properties
+
+    /// The message to display
+    let message: String
+
+    /// Binding to control visibility
+    @Binding var isShowing: Bool
+
+    // MARK: - State
+
+    @State private var scale: CGFloat = 0.5
+    @State private var opacity: Double = 0
+    @State private var yOffset: CGFloat = 20
+
+    // MARK: - Body
+
+    var body: some View {
+        if isShowing {
+            VStack {
+                Spacer()
+
+                Text(message)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.pureWhite)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                    .background(
+                        Capsule()
+                            .fill(Color.recoveryGreen)
+                            .shadow(color: Color.recoveryGreen.opacity(0.4), radius: 12, x: 0, y: 4)
+                    )
+                    .scaleEffect(scale)
+                    .opacity(opacity)
+                    .offset(y: yOffset)
+
+                Spacer()
+                    .frame(height: 180)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
+            .onAppear {
+                showAnimation()
+            }
+        }
+    }
+
+    // MARK: - Animation
+
+    private func showAnimation() {
+        // Satisfying haptic pattern
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+
+        // Entrance animation
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+            scale = 1.0
+            opacity = 1.0
+            yOffset = 0
+        }
+
+        // Second subtle haptic at peak
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            let softImpact = UIImpactFeedbackGenerator(style: .soft)
+            softImpact.impactOccurred()
+        }
+
+        // Auto-dismiss after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                opacity = 0
+                yOffset = -10
+                scale = 0.9
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                isShowing = false
+                // Reset for next time
+                scale = 0.5
+                yOffset = 20
+            }
+        }
+    }
+}
+
+// MARK: - View Modifier
+
+/// View modifier to easily add celebration overlay to any view
+struct CelebrationModifier: ViewModifier {
+    @Binding var isShowing: Bool
+    @Binding var message: String
+
+    func body(content: Content) -> some View {
+        ZStack {
+            content
+            CelebrationOverlay(message: message, isShowing: $isShowing)
+        }
+    }
+}
+
+extension View {
+    /// Adds a celebration overlay that shows encouraging messages
+    func celebrationOverlay(isShowing: Binding<Bool>, message: Binding<String>) -> some View {
+        modifier(CelebrationModifier(isShowing: isShowing, message: message))
+    }
+}
+
+// MARK: - Preview
+
+#Preview("Celebration Overlay") {
+    ZStack {
+        Color.brandBlack.ignoresSafeArea()
+
+        CelebrationOverlay(
+            message: "Crushed it! 💪",
+            isShowing: .constant(true)
+        )
+    }
+}
