@@ -104,7 +104,7 @@ struct TaskNameAutocomplete: View {
             HStack {
                 Image(systemName: "lightbulb.fill")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.activityBlue)
+                    .foregroundStyle(Color.workBlue)
                 Text("Existing tasks found - tap to edit instead")
                     .font(.system(size: Typography.captionSize, weight: .medium))
                     .foregroundStyle(Color.mediumGray)
@@ -129,7 +129,7 @@ struct TaskNameAutocomplete: View {
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.standard)
-                .stroke(Color.darkGray3, lineWidth: 1)
+                .stroke(Color.mediumGray.opacity(0.3), lineWidth: 1)
         )
         .padding(.top, Spacing.xs)
         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -192,7 +192,7 @@ struct TaskSuggestionRow: View {
     }
 
     /// Title with the matching portion highlighted
-    private var highlightedTitle: some View {
+    private var highlightedTitle: Text {
         let title = task.title
         let search = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 

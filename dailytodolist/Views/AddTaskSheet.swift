@@ -196,11 +196,11 @@ struct AddTaskSheet: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "pencil.circle.fill")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color.activityBlue)
+                .foregroundStyle(Color.workBlue)
 
             Text("Editing existing task")
                 .font(.system(size: Typography.bodySize, weight: .medium))
-                .foregroundStyle(Color.activityBlue)
+                .foregroundStyle(Color.workBlue)
 
             Spacer()
 
@@ -217,7 +217,7 @@ struct AddTaskSheet: View {
             }
         }
         .padding(Spacing.md)
-        .background(Color.activityBlue.opacity(0.1))
+        .background(Color.workBlue.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
     }
 
