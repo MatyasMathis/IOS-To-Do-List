@@ -27,6 +27,12 @@ struct ReorderableTaskList: View {
                     onEdit?(taskToEdit)
                 })
                 .contextMenu {
+                    Button {
+                        onEdit?(task)
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
                     Button(role: .destructive) {
                         onDelete(task)
                     } label: {

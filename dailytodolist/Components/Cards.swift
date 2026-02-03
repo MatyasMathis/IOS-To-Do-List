@@ -133,12 +133,13 @@ struct SectionHeader: View {
 
     var body: some View {
         Text(title.uppercased())
-            .font(.system(size: 13, weight: .bold))
+            .font(.system(size: Typography.captionSize, weight: .bold))
             .foregroundStyle(Color.mediumGray)
+            .tracking(0.8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(Color.darkGray1.opacity(0.8))
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(Color.brandBlack)
     }
 }
 
