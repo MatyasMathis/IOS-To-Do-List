@@ -1,6 +1,6 @@
 //
 //  Badges.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Reusable badge components with Whoop styling
 //

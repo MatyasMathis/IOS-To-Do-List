@@ -1,6 +1,6 @@
 //
 //  ColorPalette.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Whoop-inspired color palette for the app
 //  Design: Athletic performance tracker aesthetic with bold, clean colors

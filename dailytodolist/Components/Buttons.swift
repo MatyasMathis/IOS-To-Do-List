@@ -1,6 +1,6 @@
 //
 //  Buttons.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Reusable button styles with Whoop styling
 //

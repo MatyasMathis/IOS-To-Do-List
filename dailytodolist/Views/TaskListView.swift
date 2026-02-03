@@ -1,6 +1,6 @@
 //
 //  TaskListView.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Main view displaying today's tasks with Whoop-inspired design
 //  Design: Dark theme with Daily Progress Card, Streak Counter, and FAB
@@ -32,6 +32,10 @@ struct TaskListView: View {
     @State private var todayTasks: [TodoTask] = []
     @State private var editMode: EditMode = .inactive
     @State private var refreshID = UUID()
+
+    // Celebration overlay state
+    @State private var showCelebration = false
+    @State private var celebrationMessage = ""
 
     // MARK: - Queries
 
@@ -96,6 +100,9 @@ struct TaskListView: View {
                         .padding(.bottom, 80)
                     }
                 }
+
+                // Celebration overlay for task completion
+                CelebrationOverlay(message: celebrationMessage, isShowing: $showCelebration)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -224,8 +231,13 @@ struct TaskListView: View {
         let isNowCompleted = taskService.toggleTaskCompletion(task)
 
         if isNowCompleted {
+            // Haptic feedback
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
+
+            // Show encouraging celebration message
+            celebrationMessage = EncouragingMessages.random()
+            showCelebration = true
         }
 
         // Update immediately - completed tasks stay in list but move to end

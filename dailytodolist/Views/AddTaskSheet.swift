@@ -1,6 +1,6 @@
 //
 //  AddTaskSheet.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Sheet view for creating new tasks with Whoop-inspired design
 //  Design: Dark theme with icon-based category selector and styled inputs

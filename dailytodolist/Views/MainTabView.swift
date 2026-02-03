@@ -1,6 +1,6 @@
 //
 //  MainTabView.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Root view with compact pill toggle navigation
 //  Design: Centered capsule toggle with sliding indicator

@@ -1,10 +1,10 @@
 //
-//  dailytodolistApp.swift
-//  dailytodolist
+//  TickApp.swift
+//  Tick
 //
 //  Created by Mathis Matyas-Istvan on 24.01.2026.
 //
-//  Purpose: Main entry point for the Daily To-Do List app
+//  Purpose: Main entry point for the Tick app
 //  Key responsibilities:
 //  - Configure SwiftData model container for persistence (shared with widget)
 //  - Set up the main app window with tab navigation
@@ -24,7 +24,7 @@ extension Notification.Name {
 /// Configures the SwiftData persistence layer and sets up the root view.
 /// Uses SharedModelContainer to share data with the widget extension.
 @main
-struct dailytodolistApp: App {
+struct TickApp: App {
 
     var body: some Scene {
         WindowGroup {
@@ -39,10 +39,10 @@ struct dailytodolistApp: App {
 
     /// Handles deep links from the widget
     ///
-    /// URL scheme: dailytodolist://tasks
+    /// URL scheme: tick://tasks
     /// Posts a notification to navigate to the tasks tab.
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "dailytodolist" else { return }
+        guard url.scheme == "tick" else { return }
 
         switch url.host {
         case "tasks":

@@ -1,6 +1,6 @@
 //
 //  Cards.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Reusable card components with Whoop styling
 //

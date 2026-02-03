@@ -1,6 +1,6 @@
 //
 //  TaskRow.swift
-//  dailytodolist
+//  Tick
 //
 //  Purpose: Individual task row component with Whoop-inspired design
 //  Design: Dark card styling with custom checkbox and category badges
