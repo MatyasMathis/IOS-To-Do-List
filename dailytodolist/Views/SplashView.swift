@@ -48,20 +48,14 @@ struct SplashView: View {
                         .frame(width: 160, height: 160)
                         .opacity(glowOpacity)
 
-                    // Logo icon
-                    ZStack {
-                        // Background circle
-                        Circle()
-                            .fill(Color.darkGray1)
-                            .frame(width: 120, height: 120)
-
-                        // Checkmark/Rep icon
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 60, weight: .bold))
-                            .foregroundStyle(Color.recoveryGreen)
-                    }
-                    .scaleEffect(logoScale)
-                    .opacity(logoOpacity)
+                    // Logo
+                    Image("Logo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 120, height: 120)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .scaleEffect(logoScale)
+                        .opacity(logoOpacity)
                 }
 
                 // App name
