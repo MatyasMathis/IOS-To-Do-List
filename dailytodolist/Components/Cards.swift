@@ -1,6 +1,6 @@
 //
 //  Cards.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Reusable card components with Whoop styling
 //

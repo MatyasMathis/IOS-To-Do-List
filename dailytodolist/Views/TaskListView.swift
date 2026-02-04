@@ -1,6 +1,6 @@
 //
 //  TaskListView.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Main view displaying today's tasks with Whoop-inspired design
 //  Design: Dark theme with Daily Progress Card, Streak Counter, and FAB

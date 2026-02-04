@@ -1,6 +1,6 @@
 //
 //  Badges.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Reusable badge components with Whoop styling
 //
