@@ -52,6 +52,6 @@ struct SmallWidgetView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color.widgetRecoveryGreen)
         }
-        .widgetURL(URL(string: "dailytodolist://tasks"))
+        .widgetURL(URL(string: "reps://tasks"))
     }
 }

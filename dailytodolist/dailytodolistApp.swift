@@ -1,10 +1,10 @@
 //
-//  TickApp.swift
-//  Tick
+//  RepsApp.swift
+//  Reps
 //
 //  Created by Mathis Matyas-Istvan on 24.01.2026.
 //
-//  Purpose: Main entry point for the Tick app
+//  Purpose: Main entry point for the Reps app
 //  Key responsibilities:
 //  - Configure SwiftData model container for persistence (shared with widget)
 //  - Set up the main app window with tab navigation
@@ -24,14 +24,31 @@ extension Notification.Name {
 /// Configures the SwiftData persistence layer and sets up the root view.
 /// Uses SharedModelContainer to share data with the widget extension.
 @main
-struct TickApp: App {
+struct RepsApp: App {
+    @State private var showSplash = true
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .onOpenURL { url in
-                    handleDeepLink(url)
+            ZStack {
+                MainTabView()
+                    .onOpenURL { url in
+                        handleDeepLink(url)
+                    }
+
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
+            }
+            .onAppear {
+                // Dismiss splash after delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showSplash = false
+                    }
+                }
+            }
         }
         // Use shared model container for widget data access
         .modelContainer(SharedModelContainer.sharedModelContainer)
@@ -39,10 +56,10 @@ struct TickApp: App {
 
     /// Handles deep links from the widget
     ///
-    /// URL scheme: tick://tasks
+    /// URL scheme: reps://tasks
     /// Posts a notification to navigate to the tasks tab.
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "tick" else { return }
+        guard url.scheme == "reps" else { return }
 
         switch url.host {
         case "tasks":

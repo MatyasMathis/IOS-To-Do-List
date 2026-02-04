@@ -72,6 +72,6 @@ struct MediumWidgetView: View {
 
             Spacer(minLength: 0)
         }
-        .widgetURL(URL(string: "dailytodolist://tasks"))
+        .widgetURL(URL(string: "reps://tasks"))
     }
 }

@@ -1,6 +1,6 @@
 //
 //  CelebrationOverlay.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Encouraging messages displayed when tasks are completed
 //  Design: Creates positive reinforcement with varied, motivating messages
@@ -49,7 +49,7 @@ enum EncouragingMessages {
         "Consistency is key!",
 
         // Fun & Playful
-        "Tick! ✓",
+        "Rep! ✓",
         "Done and dusted!",
         "Mic drop!",
         "Easy money!",
