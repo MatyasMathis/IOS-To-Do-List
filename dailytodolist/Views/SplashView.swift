@@ -65,7 +65,7 @@ struct SplashView: View {
                         .tracking(4)
                         .foregroundStyle(Color.pureWhite)
 
-                    Text("Get shit done.")
+                    Text("Lock in.")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.mediumGray)
                 }
