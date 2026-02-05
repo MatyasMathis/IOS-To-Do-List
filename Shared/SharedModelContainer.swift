@@ -15,7 +15,7 @@ import Foundation
 /// accessible by both the main app and the widget extension.
 enum SharedModelContainer {
     /// The App Group identifier shared between app and widget
-    static let appGroupIdentifier = "group.com.reps.shared"
+    static let appGroupIdentifier = "group.com.mathis.reps"
 
     /// Shared model container using App Group storage
     static var sharedModelContainer: ModelContainer = {
