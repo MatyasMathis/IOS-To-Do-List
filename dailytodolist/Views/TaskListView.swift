@@ -216,8 +216,8 @@ struct TaskListView: View {
     private var emptyStateView: some View {
         EmptyStateCard(
             icon: "checklist",
-            title: "Ready to Crush Today?",
-            subtitle: "Add your first task to start building your streak",
+            title: "Your day is a blank canvas.",
+            subtitle: "What are you going to crush?",
             actionTitle: "Add Task"
         ) {
             isShowingAddSheet = true

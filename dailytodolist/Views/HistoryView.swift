@@ -275,8 +275,8 @@ struct HistoryView: View {
     private var emptyStateView: some View {
         EmptyStateCard(
             icon: "trophy.fill",
-            title: "No Wins Yet",
-            subtitle: "Complete tasks to build your history and see your progress"
+            title: "No wins yet.",
+            subtitle: "Your first rep is waiting. Go crush it."
         )
     }
 
