@@ -281,12 +281,13 @@ struct TaskListView: View {
         // - Weekly tasks: show only on selected weekdays
         // - Monthly tasks: show only on selected dates
         let filteredTasks = allActiveTasks.filter { task in
-            // First check if the task should show based on recurrence pattern
-            guard task.shouldShowToday() else { return false }
-
             if task.recurrenceType != .none {
-                return true  // Show recurring tasks (they'll appear with completion status)
+                // Recurring tasks: show if scheduled for today OR already completed today
+                // This handles the case where user edits recurrence after completing
+                return task.shouldShowToday() || task.isCompletedToday()
             } else {
+                // One-time tasks: must pass recurrence check (handles startDate)
+                guard task.shouldShowToday() else { return false }
                 // Show non-recurring if: never completed, or completed today
                 guard let completions = task.completions, !completions.isEmpty else {
                     return true  // Never completed

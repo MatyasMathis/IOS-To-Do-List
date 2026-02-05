@@ -91,17 +91,19 @@ struct TodayTasksProvider: TimelineProvider {
         var todayTasks: [(task: TodoTask, isCompleted: Bool)] = []
 
         for task in allTasks {
-            // First check if task should show today based on recurrence pattern
-            guard task.shouldShowToday() else { continue }
-
             let isCompletedToday = task.isCompletedToday()
 
             if task.recurrenceType != .none {
-                // Recurring task scheduled for today - only show if NOT completed today
+                // Recurring tasks: check if scheduled for today OR completed today
+                // This handles the case where user edits recurrence after completing
+                guard task.shouldShowToday() || isCompletedToday else { continue }
+                // Only show incomplete tasks in widget
                 if !isCompletedToday {
                     todayTasks.append((task, false))
                 }
             } else {
+                // One-time tasks: must be scheduled for today
+                guard task.shouldShowToday() else { continue }
                 // Non-recurring task
                 let hasAnyCompletions = !(task.completions?.isEmpty ?? true)
                 if !hasAnyCompletions {
