@@ -1,6 +1,6 @@
 //
 //  TaskService.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Business logic layer for task operations
 //  Key responsibilities:

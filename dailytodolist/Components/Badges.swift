@@ -1,6 +1,6 @@
 //
 //  Badges.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Reusable badge components with Whoop styling
 //
@@ -86,6 +86,28 @@ struct StreakBadge: View {
     }
 }
 
+// MARK: - Pro Badge
+
+/// Small badge indicating a premium feature
+/// Clean, minimal design that doesn't distract from the main UI
+struct ProBadge: View {
+    var body: some View {
+        Text("PRO")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(Color.brandBlack)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                LinearGradient(
+                    colors: [Color.recoveryGreen, Color.recoveryGreen.opacity(0.8)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(Capsule())
+    }
+}
+
 // MARK: - Preview
 
 #Preview("Badges") {
@@ -115,6 +137,8 @@ struct StreakBadge: View {
                 StreakBadge(count: 3)
                 StreakBadge(count: 7)
             }
+
+            ProBadge()
         }
     }
 }

@@ -80,6 +80,11 @@ struct RecurrenceTypeOption: View {
     let isSelected: Bool
     let action: () -> Void
 
+    /// Premium features: weekly and monthly recurrence
+    private var isPremiumFeature: Bool {
+        type == .weekly || type == .monthly
+    }
+
     var body: some View {
         Button(action: {
             action()
@@ -101,7 +106,7 @@ struct RecurrenceTypeOption: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: Spacing.xs) {
+                    HStack(spacing: Spacing.sm) {
                         Text(type.displayName)
                             .font(.system(size: Typography.bodySize, weight: .medium))
                             .foregroundStyle(Color.pureWhite)
@@ -110,6 +115,10 @@ struct RecurrenceTypeOption: View {
                             Image(systemName: icon)
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(Color.performancePurple)
+                        }
+
+                        if isPremiumFeature {
+                            ProBadge()
                         }
                     }
 

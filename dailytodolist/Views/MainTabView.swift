@@ -1,6 +1,6 @@
 //
 //  MainTabView.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Root view with compact pill toggle navigation
 //  Design: Centered capsule toggle with sliding indicator

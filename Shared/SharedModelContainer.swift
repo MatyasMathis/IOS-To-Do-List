@@ -1,6 +1,6 @@
 //
 //  SharedModelContainer.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Provides a shared SwiftData container accessible by both
 //  the main app and the widget extension via App Groups.
@@ -15,7 +15,7 @@ import Foundation
 /// accessible by both the main app and the widget extension.
 enum SharedModelContainer {
     /// The App Group identifier shared between app and widget
-    static let appGroupIdentifier = "group.com.tick.shared"
+    static let appGroupIdentifier = "group.com.reps.shared"
 
     /// Shared model container using App Group storage
     static var sharedModelContainer: ModelContainer = {
@@ -30,7 +30,7 @@ enum SharedModelContainer {
             fatalError("Failed to get App Group container URL for \(appGroupIdentifier)")
         }
 
-        let storeURL = containerURL.appendingPathComponent("tick.sqlite")
+        let storeURL = containerURL.appendingPathComponent("reps.sqlite")
 
         let configuration = ModelConfiguration(
             schema: schema,

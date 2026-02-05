@@ -1,6 +1,6 @@
 //
 //  Buttons.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Reusable button styles with Whoop styling
 //

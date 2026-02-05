@@ -1,6 +1,6 @@
 //
 //  CelebrationOverlay.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Encouraging messages displayed when tasks are completed
 //  Design: Creates positive reinforcement with varied, motivating messages
@@ -24,8 +24,8 @@ enum EncouragingMessages {
         "One step closer!",
         "Progress made!",
         "Momentum building!",
-        "Keep stacking wins!",
-        "Every tick counts!",
+        "Stacking wins.",
+        "Another rep done.",
 
         // Encouragement
         "You've got this!",
@@ -43,17 +43,27 @@ enum EncouragingMessages {
 
         // Motivational
         "Discipline pays off!",
-        "Future you says thanks!",
+        "Future you says thanks.",
         "Building greatness!",
         "Stay relentless!",
         "Consistency is key!",
 
+        // Identity-focused (powerful)
+        "This is who you are now.",
+        "Consistency looks good on you.",
+        "Yesterday's you would be proud.",
+
         // Fun & Playful
-        "Tick! ✓",
+        "Rep! ✓",
         "Done and dusted!",
         "Mic drop!",
         "Easy money!",
         "Like a boss!",
+
+        // Simple satisfaction
+        "Done.",
+        "Handled.",
+        "Next.",
 
         // Energy boosters
         "Let's gooo!",
@@ -63,9 +73,25 @@ enum EncouragingMessages {
         "Absolute legend!"
     ]
 
+    /// Streak milestone messages (for special celebrations)
+    static let streakMilestones: [Int: String] = [
+        7: "One week locked in. 🔥",
+        14: "Two weeks. This isn't luck.",
+        21: "Three weeks. Habits forming.",
+        30: "30 days. You're different now.",
+        50: "50 days. Unstoppable.",
+        75: "75 days. Elite consistency.",
+        100: "100 days. Legendary. 👑"
+    ]
+
     /// Returns a random encouraging message
     static func random() -> String {
         messages.randomElement() ?? "Great job!"
+    }
+
+    /// Returns a milestone message if applicable
+    static func milestoneMessage(for streak: Int) -> String? {
+        streakMilestones[streak]
     }
 }
 

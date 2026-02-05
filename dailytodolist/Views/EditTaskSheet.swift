@@ -1,6 +1,6 @@
 //
 //  EditTaskSheet.swift
-//  Tick
+//  Reps
 //
 //  Purpose: Sheet view for editing existing tasks
 //  Features: Pre-filled form with current task values, save/cancel flow
