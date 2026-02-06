@@ -159,7 +159,7 @@ struct StatsView: View {
 
 #Preview("Stats View") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
     // Create sample tasks
     let task1 = TodoTask(title: "Morning Exercise", category: "Health", recurrenceType: .daily)
@@ -188,7 +188,7 @@ struct StatsView: View {
 
 #Preview("Stats View - Empty") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
     return StatsView()
         .modelContainer(container)

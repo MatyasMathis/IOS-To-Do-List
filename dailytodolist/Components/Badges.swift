@@ -6,15 +6,20 @@
 //
 
 import SwiftUI
+import SwiftData
 
 // MARK: - Category Badge
 
 /// Badge displaying the task's category with Whoop-inspired styling
+/// Supports both built-in and custom categories
 struct CategoryBadge: View {
     let category: String
 
+    @Query(sort: \CustomCategory.sortOrder)
+    private var customCategories: [CustomCategory]
+
     private var categoryColor: Color {
-        Color.categoryColor(for: category)
+        Color.categoryColor(for: category, customCategories: customCategories)
     }
 
     var body: some View {

@@ -194,7 +194,7 @@ struct CompletionHistoryRow: View {
     struct PreviewWrapper: View {
         var body: some View {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
             let task = TodoTask(title: "Morning Exercise", category: "Health", recurrenceType: .daily)
             container.mainContext.insert(task)
@@ -238,7 +238,7 @@ struct CompletionHistoryRow: View {
     struct PreviewWrapper: View {
         var body: some View {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
             let task = TodoTask(title: "New Task", category: "Work")
             container.mainContext.insert(task)

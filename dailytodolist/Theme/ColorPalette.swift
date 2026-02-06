@@ -60,26 +60,34 @@ extension Color {
     // MARK: - Helper Methods
 
     /// Returns the appropriate color for a given category
-    static func categoryColor(for category: String?) -> Color {
+    static func categoryColor(for category: String?, customCategories: [CustomCategory] = []) -> Color {
         guard let category = category else { return .otherGray }
         switch category.lowercased() {
         case "work": return .workBlue
         case "personal": return .personalOrange
         case "health": return .healthGreen
         case "shopping": return .shoppingMagenta
-        default: return .otherGray
+        default:
+            if let custom = customCategories.first(where: { $0.name == category }) {
+                return Color(hex: custom.colorHex)
+            }
+            return .otherGray
         }
     }
 
     /// Returns the emoji icon for a given category
-    static func categoryIcon(for category: String?) -> String {
+    static func categoryIcon(for category: String?, customCategories: [CustomCategory] = []) -> String {
         guard let category = category else { return "circle.fill" }
         switch category.lowercased() {
         case "work": return "briefcase.fill"
         case "personal": return "house.fill"
         case "health": return "heart.fill"
         case "shopping": return "cart.fill"
-        default: return "circle.fill"
+        default:
+            if let custom = customCategories.first(where: { $0.name == category }) {
+                return custom.iconName
+            }
+            return "circle.fill"
         }
     }
 }

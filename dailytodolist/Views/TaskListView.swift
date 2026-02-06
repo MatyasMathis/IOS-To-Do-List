@@ -371,7 +371,7 @@ struct TaskListView: View {
 
 #Preview("With Tasks") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
     let task1 = TodoTask(title: "Morning Workout", category: "Health", sortOrder: 1)
     let task2 = TodoTask(title: "Team Meeting", category: "Work", recurrenceType: .daily, sortOrder: 2)
@@ -386,5 +386,5 @@ struct TaskListView: View {
 
 #Preview("Empty State") {
     TaskListView()
-        .modelContainer(for: [TodoTask.self, TaskCompletion.self], inMemory: true)
+        .modelContainer(for: [TodoTask.self, TaskCompletion.self, CustomCategory.self], inMemory: true)
 }

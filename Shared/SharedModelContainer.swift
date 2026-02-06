@@ -21,7 +21,8 @@ enum SharedModelContainer {
     static var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             TodoTask.self,
-            TaskCompletion.self
+            TaskCompletion.self,
+            CustomCategory.self
         ])
 
         guard let containerURL = FileManager.default.containerURL(

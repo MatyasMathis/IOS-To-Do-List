@@ -170,7 +170,7 @@ struct StatItem: View {
     struct PreviewWrapper: View {
         var body: some View {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
             // Recurring task with good stats
             let recurringTask = TodoTask(title: "Morning Exercise", category: "Health", recurrenceType: .daily)

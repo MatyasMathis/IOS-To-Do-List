@@ -224,7 +224,7 @@ struct TaskSuggestionRow: View {
 
         var body: some View {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+            let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
             let task1 = TodoTask(title: "GYM Workout", category: "Health", recurrenceType: .daily)
             let task2 = TodoTask(title: "Go to the gym", category: "Health")
