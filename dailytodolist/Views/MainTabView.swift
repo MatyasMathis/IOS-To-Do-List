@@ -23,6 +23,18 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .today
     @Namespace private var animation
 
+    // MARK: - Init
+
+    init() {
+        // Set hidden tab bar background to match the app theme
+        // Prevents grey bleed-through when scrolling to the bottom
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor(Color.brandBlack)
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+    }
+
     // MARK: - Tab Enum
 
     enum Tab: CaseIterable {
@@ -65,6 +77,7 @@ struct MainTabView: View {
                     .toolbar(.hidden, for: .tabBar)
                     .tag(Tab.history)
             }
+            .background(Color.brandBlack.ignoresSafeArea())
 
             // Compact Pill Toggle
             pillToggle

@@ -27,7 +27,6 @@ struct TaskListView: View {
     // MARK: - State
 
     @State private var isShowingAddSheet = false
-    @State private var isShowingEditSheet = false
     @State private var taskToEdit: TodoTask?
     @State private var todayTasks: [TodoTask] = []
     @State private var editMode: EditMode = .inactive
@@ -134,23 +133,20 @@ struct TaskListView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
-            .sheet(isPresented: $isShowingEditSheet, onDismiss: {
+            .sheet(item: $taskToEdit, onDismiss: {
                 // Refresh tasks after editing
                 withAnimation {
                     updateTodayTasks()
                 }
-                taskToEdit = nil
-            }) {
-                if let task = taskToEdit {
-                    EditTaskSheet(task: task) {
-                        // On delete callback
-                        withAnimation {
-                            updateTodayTasks()
-                        }
+            }) { task in
+                EditTaskSheet(task: task) {
+                    // On delete callback
+                    withAnimation {
+                        updateTodayTasks()
                     }
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
                 }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
             .onAppear {
                 updateTodayTasks()
@@ -325,7 +321,6 @@ struct TaskListView: View {
 
     private func editTask(_ task: TodoTask) {
         taskToEdit = task
-        isShowingEditSheet = true
     }
 
     private func reorderTasks(_ tasks: [TodoTask]) {

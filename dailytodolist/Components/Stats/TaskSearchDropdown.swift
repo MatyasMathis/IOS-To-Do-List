@@ -34,50 +34,82 @@ struct TaskSearchDropdown: View {
 
     // MARK: - Body
 
+    @FocusState private var isSearchFocused: Bool
+
     var body: some View {
         VStack(spacing: 0) {
             // Search field / Selected task display
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isExpanded.toggle()
-                    if !isExpanded {
-                        searchText = ""
-                    }
-                }
-            } label: {
+            if isExpanded {
+                // Expanded state: show real TextField (not inside a Button)
                 HStack(spacing: Spacing.md) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.mediumGray)
 
-                    if isExpanded {
-                        TextField("Search tasks...", text: $searchText)
-                            .font(.system(size: Typography.bodySize, weight: .regular))
-                            .foregroundStyle(Color.pureWhite)
-                            .tint(Color.recoveryGreen)
-                    } else if let task = selectedTask {
-                        Text(task.title)
-                            .font(.system(size: Typography.bodySize, weight: .medium))
-                            .foregroundStyle(Color.pureWhite)
-                            .lineLimit(1)
-                    } else {
-                        Text("Select a task...")
-                            .font(.system(size: Typography.bodySize, weight: .regular))
-                            .foregroundStyle(Color.mediumGray)
-                    }
+                    TextField("Search tasks...", text: $searchText)
+                        .font(.system(size: Typography.bodySize, weight: .regular))
+                        .foregroundStyle(Color.pureWhite)
+                        .tint(Color.recoveryGreen)
+                        .focused($isSearchFocused)
 
                     Spacer()
 
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.mediumGray)
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isExpanded = false
+                            searchText = ""
+                            isSearchFocused = false
+                        }
+                    } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
                 .background(Color.darkGray2)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                .onAppear {
+                    isSearchFocused = true
+                }
+            } else {
+                // Collapsed state: tappable button to expand
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isExpanded = true
+                    }
+                } label: {
+                    HStack(spacing: Spacing.md) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Color.mediumGray)
+
+                        if let task = selectedTask {
+                            Text(task.title)
+                                .font(.system(size: Typography.bodySize, weight: .medium))
+                                .foregroundStyle(Color.pureWhite)
+                                .lineLimit(1)
+                        } else {
+                            Text("Select a task...")
+                                .font(.system(size: Typography.bodySize, weight: .regular))
+                                .foregroundStyle(Color.mediumGray)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .background(Color.darkGray2)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             // Dropdown list
             if isExpanded {
