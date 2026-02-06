@@ -31,8 +31,8 @@ struct TodayTasksWidget: Widget {
     TaskEntry(
         date: Date(),
         tasks: [
-            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
-            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false, isCompletedToday: true)
+            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false, isCompletedToday: true, customCategoryColorHex: nil)
         ],
         completedCount: 1,
         totalCount: 2
@@ -45,9 +45,9 @@ struct TodayTasksWidget: Widget {
     TaskEntry(
         date: Date(),
         tasks: [
-            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
-            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true, isCompletedToday: false),
-            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true)
+            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true, customCategoryColorHex: nil)
         ],
         completedCount: 1,
         totalCount: 3
@@ -60,11 +60,11 @@ struct TodayTasksWidget: Widget {
     TaskEntry(
         date: Date(),
         tasks: [
-            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
-            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true, isCompletedToday: false),
-            WidgetTask(id: UUID(), title: "Team standup", category: "Work", isRecurring: true, isCompletedToday: false),
-            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true),
-            WidgetTask(id: UUID(), title: "Call mom", category: "Personal", isRecurring: false, isCompletedToday: true)
+            WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Team standup", category: "Work", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true, customCategoryColorHex: nil),
+            WidgetTask(id: UUID(), title: "Call mom", category: "Personal", isRecurring: false, isCompletedToday: true, customCategoryColorHex: nil)
         ],
         completedCount: 2,
         totalCount: 5

@@ -3,17 +3,29 @@
 //  dailytodolist
 //
 //  Purpose: Category selection grid component for AddTaskSheet
+//  Supports built-in categories and user-created custom categories
 //
 
 import SwiftUI
+import SwiftData
 
 // MARK: - Category Selector
 
-/// Grid-based category selector with icons
+/// Grid-based category selector with icons, supporting custom categories
 struct CategorySelector: View {
     @Binding var selectedCategory: String
 
-    private let categories: [(id: String, icon: String, label: String, color: Color)] = [
+    @Query(sort: \CustomCategory.sortOrder)
+    private var customCategories: [CustomCategory]
+
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var showAddCategory = false
+    @State private var editingCategory: CustomCategory?
+    @State private var categoryToDelete: CustomCategory?
+    @State private var showDeleteConfirmation = false
+
+    private let builtInCategories: [(id: String, icon: String, label: String, color: Color)] = [
         ("Work", "briefcase.fill", "Work", .workBlue),
         ("Personal", "house.fill", "Personal", .personalOrange),
         ("Health", "heart.fill", "Health", .healthGreen),
@@ -21,14 +33,17 @@ struct CategorySelector: View {
         ("Other", "circle.fill", "Other", .otherGray)
     ]
 
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: 5)
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("CATEGORY")
                 .font(.system(size: Typography.labelSize, weight: .semibold))
                 .foregroundStyle(Color.mediumGray)
 
-            HStack(spacing: Spacing.sm) {
-                ForEach(categories, id: \.id) { category in
+            LazyVGrid(columns: columns, spacing: Spacing.sm) {
+                // Built-in categories
+                ForEach(builtInCategories, id: \.id) { category in
                     CategoryButton(
                         icon: category.icon,
                         label: category.label,
@@ -42,13 +57,80 @@ struct CategorySelector: View {
                                 selectedCategory = category.id
                             }
                         }
-                        // Haptic feedback
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
                     }
                 }
+
+                // Custom categories
+                ForEach(customCategories) { custom in
+                    CategoryButton(
+                        icon: custom.iconName,
+                        label: custom.name,
+                        color: Color(hex: custom.colorHex),
+                        isSelected: selectedCategory == custom.name
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if selectedCategory == custom.name {
+                                selectedCategory = ""
+                            } else {
+                                selectedCategory = custom.name
+                            }
+                        }
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                    }
+                    .contextMenu {
+                        Button {
+                            editingCategory = custom
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+
+                        Button(role: .destructive) {
+                            categoryToDelete = custom
+                            showDeleteConfirmation = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+
+                // Add custom category button with PRO badge
+                AddCategoryButton {
+                    showAddCategory = true
+                }
             }
         }
+        .sheet(isPresented: $showAddCategory) {
+            AddCategorySheet()
+        }
+        .sheet(item: $editingCategory) { category in
+            AddCategorySheet(editingCategory: category)
+        }
+        .confirmationDialog(
+            "Delete Category",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let cat = categoryToDelete {
+                    deleteCategory(cat)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Tasks using this category will keep their name but show default styling.")
+        }
+    }
+
+    private func deleteCategory(_ category: CustomCategory) {
+        // Clear selection if this category was selected
+        if selectedCategory == category.name {
+            selectedCategory = ""
+        }
+        modelContext.delete(category)
+        try? modelContext.save()
     }
 }
 
@@ -82,6 +164,44 @@ struct CategoryButton: View {
                 Text(label)
                     .font(.system(size: Typography.captionSize, weight: .medium))
                     .foregroundStyle(isSelected ? color : Color.mediumGray)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Add Category Button
+
+/// Button to create a new custom category, shown with PRO badge
+struct AddCategoryButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: Spacing.xs) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: CornerRadius.standard)
+                        .fill(Color.darkGray2)
+                        .frame(width: ComponentSize.categoryButton, height: ComponentSize.categoryButton)
+
+                    RoundedRectangle(cornerRadius: CornerRadius.standard)
+                        .strokeBorder(Color.mediumGray.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                        .frame(width: ComponentSize.categoryButton, height: ComponentSize.categoryButton)
+
+                    VStack(spacing: 2) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(Color.mediumGray)
+
+                        ProBadge()
+                    }
+                }
+
+                Text("Custom")
+                    .font(.system(size: Typography.captionSize, weight: .medium))
+                    .foregroundStyle(Color.mediumGray)
+                    .lineLimit(1)
             }
         }
         .buttonStyle(.plain)
@@ -198,14 +318,17 @@ struct FrequencyOption: View {
         var body: some View {
             ZStack {
                 Color.brandBlack.ignoresSafeArea()
-                VStack(spacing: Spacing.section) {
-                    CategorySelector(selectedCategory: $category)
-                    FrequencySelector(isRecurring: $isRecurring)
+                ScrollView {
+                    VStack(spacing: Spacing.section) {
+                        CategorySelector(selectedCategory: $category)
+                        FrequencySelector(isRecurring: $isRecurring)
+                    }
+                    .padding(Spacing.xl)
                 }
-                .padding(Spacing.xl)
             }
         }
     }
 
     return PreviewWrapper()
+        .modelContainer(for: [TodoTask.self, TaskCompletion.self, CustomCategory.self], inMemory: true)
 }

@@ -456,7 +456,7 @@ private struct CalendarDayCell: View {
 
 #Preview("With History") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, configurations: config)
+    let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
     let task1 = TodoTask(title: "Morning meditation", category: "Health", isRecurring: true)
     let task2 = TodoTask(title: "Buy groceries", category: "Shopping")
@@ -482,5 +482,5 @@ private struct CalendarDayCell: View {
 
 #Preview("Empty State") {
     HistoryView()
-        .modelContainer(for: [TodoTask.self, TaskCompletion.self], inMemory: true)
+        .modelContainer(for: [TodoTask.self, TaskCompletion.self, CustomCategory.self], inMemory: true)
 }

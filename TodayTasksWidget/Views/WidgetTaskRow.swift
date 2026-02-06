@@ -48,7 +48,7 @@ struct WidgetTaskRow: View {
             if !task.isCompletedToday {
                 HStack(spacing: 4) {
                     if let category = task.category, !category.isEmpty {
-                        WidgetCategoryBadge(category: category, compact: compact)
+                        WidgetCategoryBadge(category: category, compact: compact, customColorHex: task.customCategoryColorHex)
                     }
 
                     if task.isRecurring {
@@ -70,14 +70,22 @@ struct WidgetTaskRow: View {
 struct WidgetCategoryBadge: View {
     let category: String
     let compact: Bool
+    var customColorHex: String? = nil
+
+    private var badgeColor: Color {
+        if let hex = customColorHex {
+            return Color(hex: hex)
+        }
+        return Color.widgetCategoryColor(for: category)
+    }
 
     var body: some View {
         Text(category.uppercased())
             .font(.system(size: compact ? 9 : 10, weight: .semibold))
-            .foregroundStyle(Color.widgetCategoryColor(for: category))
+            .foregroundStyle(badgeColor)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(Color.widgetCategoryColor(for: category).opacity(0.2))
+            .background(badgeColor.opacity(0.2))
             .clipShape(Capsule())
     }
 }

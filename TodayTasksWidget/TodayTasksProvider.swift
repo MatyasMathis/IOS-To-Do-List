@@ -24,6 +24,8 @@ struct WidgetTask: Identifiable {
     let category: String?
     let isRecurring: Bool
     let isCompletedToday: Bool
+    /// Hex color for custom categories (nil for built-in categories)
+    let customCategoryColorHex: String?
 }
 
 // MARK: - Timeline Provider
@@ -34,9 +36,9 @@ struct TodayTasksProvider: TimelineProvider {
         TaskEntry(
             date: Date(),
             tasks: [
-                WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false),
-                WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false, isCompletedToday: false),
-                WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true)
+                WidgetTask(id: UUID(), title: "Morning workout", category: "Health", isRecurring: true, isCompletedToday: false, customCategoryColorHex: nil),
+                WidgetTask(id: UUID(), title: "Review PRs", category: "Work", isRecurring: false, isCompletedToday: false, customCategoryColorHex: nil),
+                WidgetTask(id: UUID(), title: "Buy groceries", category: "Shopping", isRecurring: false, isCompletedToday: true, customCategoryColorHex: nil)
             ],
             completedCount: 1,
             totalCount: 3
@@ -78,6 +80,10 @@ struct TodayTasksProvider: TimelineProvider {
         )
 
         let allTasks = (try? context.fetch(descriptor)) ?? []
+
+        // Fetch custom categories for color resolution
+        let categoryDescriptor = FetchDescriptor<CustomCategory>()
+        let customCategories = (try? context.fetch(categoryDescriptor)) ?? []
 
         // Ensure completions relationship is loaded for each task
         for task in allTasks {
@@ -121,12 +127,20 @@ struct TodayTasksProvider: TimelineProvider {
         // completedCount = 0 since we only show incomplete tasks
         // totalCount = number of incomplete tasks for today
         let widgetTasks = todayTasks.map { item in
-            WidgetTask(
+            let colorHex: String? = {
+                guard let cat = item.task.category else { return nil }
+                // Only provide hex for custom categories (built-in ones resolve in WidgetColors)
+                let builtIn = ["work", "personal", "health", "shopping", "other"]
+                if builtIn.contains(cat.lowercased()) { return nil }
+                return customCategories.first(where: { $0.name == cat })?.colorHex
+            }()
+            return WidgetTask(
                 id: item.task.id,
                 title: item.task.title,
                 category: item.task.category,
                 isRecurring: item.task.recurrenceType != .none,
-                isCompletedToday: item.isCompleted
+                isCompletedToday: item.isCompleted,
+                customCategoryColorHex: colorHex
             )
         }
 

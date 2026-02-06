@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 extension Color {
     // MARK: - Backgrounds
@@ -27,14 +28,18 @@ extension Color {
     static let widgetHealthGreen = Color(hex: "2DD881")
     static let widgetShoppingMagenta = Color(hex: "BD10E0")
 
-    static func widgetCategoryColor(for category: String?) -> Color {
+    static func widgetCategoryColor(for category: String?, customCategories: [CustomCategory] = []) -> Color {
         guard let category = category else { return .widgetMediumGray }
         switch category.lowercased() {
         case "work": return .widgetWorkBlue
         case "personal": return .widgetPersonalOrange
         case "health": return .widgetHealthGreen
         case "shopping": return .widgetShoppingMagenta
-        default: return .widgetMediumGray
+        default:
+            if let custom = customCategories.first(where: { $0.name == category }) {
+                return Color(hex: custom.colorHex)
+            }
+            return .widgetMediumGray
         }
     }
 

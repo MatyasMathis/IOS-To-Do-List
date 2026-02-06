@@ -402,5 +402,5 @@ struct AddTaskSheet: View {
 
 #Preview {
     AddTaskSheet()
-        .modelContainer(for: [TodoTask.self, TaskCompletion.self], inMemory: true)
+        .modelContainer(for: [TodoTask.self, TaskCompletion.self, CustomCategory.self], inMemory: true)
 }

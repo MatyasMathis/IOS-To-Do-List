@@ -145,5 +145,5 @@ struct MainTabView: View {
 
 #Preview {
     MainTabView()
-        .modelContainer(for: [TodoTask.self, TaskCompletion.self], inMemory: true)
+        .modelContainer(for: [TodoTask.self, TaskCompletion.self, CustomCategory.self], inMemory: true)
 }
