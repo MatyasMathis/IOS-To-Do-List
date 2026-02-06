@@ -77,6 +77,7 @@ struct MainTabView: View {
                     .toolbar(.hidden, for: .tabBar)
                     .tag(Tab.history)
             }
+            .background(Color.brandBlack.ignoresSafeArea())
 
             // Compact Pill Toggle
             pillToggle
