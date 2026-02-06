@@ -158,6 +158,8 @@ struct CheckboxButton: View {
                         .foregroundStyle(Color.pureWhite)
                 }
             }
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isChecked)

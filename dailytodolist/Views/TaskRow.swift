@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import AudioToolbox
 
 /// A row view displaying a single task with Whoop-inspired styling
 ///
@@ -109,10 +110,12 @@ struct TaskRow: View {
             isCompleted.toggle()
         }
 
-        // Success haptic for completion
+        // Success haptic and sound for completion
         if isCompleted {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
+            // Play a satisfying completion sound (system key-press tick sound)
+            AudioServicesPlaySystemSound(1104)
         }
 
         // Notify parent to handle the completion in the database
