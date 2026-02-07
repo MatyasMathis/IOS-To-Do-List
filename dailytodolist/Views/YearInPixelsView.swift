@@ -3,7 +3,7 @@
 //  Reps
 //
 //  Purpose: Annual progress heatmap showing completion consistency
-//  Design: GitHub-contribution-style grid with intensity-based coloring
+//  Design: 12 rows (months) x 31 columns (days), left-to-right reading
 //
 
 import SwiftUI
@@ -11,11 +11,9 @@ import SwiftData
 
 /// Year in Pixels — a full-year heatmap of daily task completions
 ///
-/// Each day is a small square colored by completion percentage:
-/// - No completions: dark gray
-/// - Some completions: light green
-/// - All completions: vivid green
-/// Tapping shows details for that day.
+/// Layout: 12 rows (Jan-Dec), up to 31 columns (day of month)
+/// Each pixel is colored by completion count for that day.
+/// Tapping a pixel shows details.
 struct YearInPixelsView: View {
 
     // MARK: - Environment
@@ -32,6 +30,11 @@ struct YearInPixelsView: View {
     @State private var selectedYear: Int
     @State private var selectedDayInfo: DayInfo?
 
+    // MARK: - Constants
+
+    private let cellSize: CGFloat = 10
+    private let cellSpacing: CGFloat = 2
+
     // MARK: - Init
 
     init() {
@@ -40,9 +43,10 @@ struct YearInPixelsView: View {
 
     // MARK: - Computed Properties
 
+    private let calendar = Calendar.current
+
     /// Map of date -> completion count for the selected year
     private var completionsByDate: [Date: Int] {
-        let calendar = Calendar.current
         var map: [Date: Int] = [:]
 
         for completion in allCompletions {
@@ -55,73 +59,51 @@ struct YearInPixelsView: View {
         return map
     }
 
-    /// All days in the selected year organized into weeks (columns)
-    private var yearGrid: [[DayInfo]] {
-        let calendar = Calendar.current
-
-        // Start from Jan 1 of selected year
-        var components = DateComponents()
-        components.year = selectedYear
-        components.month = 1
-        components.day = 1
-        guard let yearStart = calendar.date(from: components) else { return [] }
-
+    /// Month data: 12 arrays of DayInfo, one per month
+    private var monthRows: [[DayInfo]] {
         let today = calendar.startOfDay(for: Date())
-        let isCurrentYear = selectedYear == calendar.component(.year, from: today)
 
-        // End date: Dec 31 or today if current year
-        components.month = 12
-        components.day = 31
-        guard let yearEnd = calendar.date(from: components) else { return [] }
-        let endDate = isCurrentYear ? min(today, yearEnd) : yearEnd
+        return (1...12).map { month in
+            var comps = DateComponents()
+            comps.year = selectedYear
+            comps.month = month
+            comps.day = 1
 
-        // Build day infos
-        var allDays: [DayInfo] = []
-        var currentDate = yearStart
+            guard let monthStart = calendar.date(from: comps),
+                  let range = calendar.range(of: .day, in: .month, for: monthStart) else {
+                return []
+            }
 
-        while currentDate <= endDate {
-            let count = completionsByDate[currentDate] ?? 0
-            let isFuture = currentDate > today
+            return range.map { day -> DayInfo in
+                comps.day = day
+                guard let date = calendar.date(from: comps) else {
+                    return DayInfo.empty
+                }
+                let startOfDate = calendar.startOfDay(for: date)
+                let count = completionsByDate[startOfDate] ?? 0
 
-            allDays.append(DayInfo(
-                date: currentDate,
-                completionCount: count,
-                isFuture: isFuture,
-                isToday: currentDate == today
-            ))
-
-            guard let next = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
-            currentDate = next
-        }
-
-        // Organize into weeks (7 rows, N columns)
-        // Monday = row 0, Sunday = row 6
-        var weeks: [[DayInfo]] = []
-        var currentWeek: [DayInfo] = []
-
-        // Add empty slots for days before Jan 1's weekday
-        if let firstDay = allDays.first {
-            let weekday = calendar.component(.weekday, from: firstDay.date)
-            let mondayOffset = (weekday + 5) % 7 // Convert to Monday-based (0=Mon, 6=Sun)
-            for _ in 0..<mondayOffset {
-                currentWeek.append(DayInfo.empty)
+                return DayInfo(
+                    date: startOfDate,
+                    completionCount: count,
+                    isFuture: startOfDate > today,
+                    isToday: startOfDate == today
+                )
             }
         }
+    }
 
-        for day in allDays {
-            currentWeek.append(day)
-            if currentWeek.count == 7 {
-                weeks.append(currentWeek)
-                currentWeek = []
-            }
+    /// Short month names
+    private var monthNames: [String] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+        return (1...12).compactMap { month in
+            var comps = DateComponents()
+            comps.year = selectedYear
+            comps.month = month
+            comps.day = 1
+            guard let date = calendar.date(from: comps) else { return nil }
+            return formatter.string(from: date)
         }
-
-        // Add remaining partial week
-        if !currentWeek.isEmpty {
-            weeks.append(currentWeek)
-        }
-
-        return weeks
     }
 
     /// Total completions this year
@@ -134,58 +116,34 @@ struct YearInPixelsView: View {
         completionsByDate.filter { $0.value > 0 }.count
     }
 
-    /// Best single day
+    /// Best single day count
     private var bestDay: Int {
         completionsByDate.values.max() ?? 0
     }
 
-    /// Current year streak
+    /// Longest streak in selected year
     private var longestStreak: Int {
-        let calendar = Calendar.current
         let sortedDates = completionsByDate.keys.sorted()
         guard !sortedDates.isEmpty else { return 0 }
 
         var maxStreak = 1
-        var currentStreakCount = 1
+        var current = 1
 
         for i in 1..<sortedDates.count {
             if let expected = calendar.date(byAdding: .day, value: 1, to: sortedDates[i - 1]),
                calendar.isDate(expected, inSameDayAs: sortedDates[i]) {
-                currentStreakCount += 1
-                maxStreak = max(maxStreak, currentStreakCount)
+                current += 1
+                maxStreak = max(maxStreak, current)
             } else {
-                currentStreakCount = 1
+                current = 1
             }
         }
 
         return maxStreak
     }
 
-    // MARK: - Month labels
-
-    private var monthLabels: [(String, Int)] {
-        let calendar = Calendar.current
-        var labels: [(String, Int)] = []
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM"
-
-        for month in 1...12 {
-            var comps = DateComponents()
-            comps.year = selectedYear
-            comps.month = month
-            comps.day = 1
-            guard let date = calendar.date(from: comps) else { continue }
-
-            // Calculate which week column this month starts in
-            let startOfYear = calendar.date(from: DateComponents(year: selectedYear, month: 1, day: 1))!
-            let dayOfYear = calendar.dateComponents([.day], from: startOfYear, to: date).day ?? 0
-            let firstDayWeekday = (calendar.component(.weekday, from: startOfYear) + 5) % 7
-            let weekIndex = (dayOfYear + firstDayWeekday) / 7
-
-            labels.append((formatter.string(from: date), weekIndex))
-        }
-
-        return labels
+    private var canGoNext: Bool {
+        selectedYear < calendar.component(.year, from: Date())
     }
 
     // MARK: - Body
@@ -197,19 +155,11 @@ struct YearInPixelsView: View {
 
                 ScrollView {
                     VStack(spacing: Spacing.xxl) {
-                        // Year selector
                         yearSelector
-
-                        // Stats summary
                         statsSummary
-
-                        // The pixel grid
                         pixelGrid
-
-                        // Legend
                         legend
 
-                        // Selected day detail
                         if let info = selectedDayInfo {
                             selectedDayDetail(info)
                         }
@@ -239,6 +189,7 @@ struct YearInPixelsView: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     selectedYear -= 1
+                    selectedDayInfo = nil
                 }
             } label: {
                 Image(systemName: "chevron.left")
@@ -255,6 +206,7 @@ struct YearInPixelsView: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     selectedYear += 1
+                    selectedDayInfo = nil
                 }
             } label: {
                 Image(systemName: "chevron.right")
@@ -264,10 +216,6 @@ struct YearInPixelsView: View {
             }
             .disabled(!canGoNext)
         }
-    }
-
-    private var canGoNext: Bool {
-        selectedYear < Calendar.current.component(.year, from: Date())
     }
 
     private var statsSummary: some View {
@@ -298,67 +246,63 @@ struct YearInPixelsView: View {
 
     private var pixelGrid: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Month labels
-            GeometryReader { geometry in
-                let cellSize: CGFloat = 11
-                let spacing: CGFloat = 3
-                let totalCellWidth = cellSize + spacing
+            // Day number header (1, 5, 10, 15, 20, 25, 30)
+            HStack(spacing: 0) {
+                // Spacer for month label column
+                Color.clear.frame(width: 32, height: 14)
 
-                ZStack(alignment: .leading) {
-                    ForEach(monthLabels, id: \.1) { label, weekIndex in
-                        Text(label)
-                            .font(.system(size: 9, weight: .medium))
+                ForEach(1...31, id: \.self) { day in
+                    if day == 1 || day % 5 == 0 {
+                        Text("\(day)")
+                            .font(.system(size: 8, weight: .medium))
                             .foregroundStyle(Color.mediumGray)
-                            .offset(x: CGFloat(weekIndex) * totalCellWidth)
+                            .frame(width: cellSize + cellSpacing, height: 14)
+                    } else {
+                        Color.clear
+                            .frame(width: cellSize + cellSpacing, height: 14)
                     }
                 }
             }
-            .frame(height: 16)
 
-            // Day labels + grid
-            HStack(alignment: .top, spacing: Spacing.xs) {
-                // Weekday labels
-                VStack(spacing: 3) {
-                    ForEach(["M", "", "W", "", "F", "", "S"], id: \.self) { label in
-                        Text(label)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Color.mediumGray)
-                            .frame(width: 14, height: 11)
+            // Month rows
+            ForEach(Array(monthRows.enumerated()), id: \.offset) { monthIndex, days in
+                HStack(spacing: 0) {
+                    // Month label
+                    Text(monthNames[monthIndex])
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Color.mediumGray)
+                        .frame(width: 32, alignment: .trailing)
+                        .padding(.trailing, Spacing.xs)
+
+                    // Day pixels
+                    ForEach(Array(days.enumerated()), id: \.offset) { dayIndex, day in
+                        pixelCell(for: day)
+                            .padding(.trailing, cellSpacing)
+                            .padding(.bottom, cellSpacing)
                     }
-                }
 
-                // Pixel grid
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 3) {
-                        ForEach(Array(yearGrid.enumerated()), id: \.offset) { weekIndex, week in
-                            VStack(spacing: 3) {
-                                ForEach(Array(week.enumerated()), id: \.offset) { dayIndex, day in
-                                    pixelCell(for: day)
-                                }
-                                // Fill remaining slots if week is incomplete
-                                if week.count < 7 {
-                                    ForEach(0..<(7 - week.count), id: \.self) { _ in
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(Color.clear)
-                                            .frame(width: 11, height: 11)
-                                    }
-                                }
-                            }
+                    // Pad remaining cells if month has < 31 days
+                    if days.count < 31 {
+                        ForEach(0..<(31 - days.count), id: \.self) { _ in
+                            Color.clear
+                                .frame(width: cellSize, height: cellSize)
+                                .padding(.trailing, cellSpacing)
+                                .padding(.bottom, cellSpacing)
                         }
                     }
                 }
             }
         }
-        .padding(Spacing.lg)
+        .padding(Spacing.md)
         .background(Color.darkGray1)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
-        .padding(.horizontal, Spacing.lg)
+        .padding(.horizontal, Spacing.sm)
     }
 
     private func pixelCell(for day: DayInfo) -> some View {
         RoundedRectangle(cornerRadius: 2)
             .fill(pixelColor(for: day))
-            .frame(width: 11, height: 11)
+            .frame(width: cellSize, height: cellSize)
             .overlay {
                 if day.isToday {
                     RoundedRectangle(cornerRadius: 2)
@@ -366,7 +310,7 @@ struct YearInPixelsView: View {
                 }
             }
             .onTapGesture {
-                if !day.isEmpty {
+                if !day.isEmpty && !day.isFuture {
                     let generator = UIImpactFeedbackGenerator(style: .light)
                     generator.impactOccurred()
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -377,24 +321,16 @@ struct YearInPixelsView: View {
     }
 
     private func pixelColor(for day: DayInfo) -> Color {
-        if day.isEmpty { return Color.clear }
-        if day.isFuture { return Color.clear }
+        if day.isEmpty || day.isFuture { return Color.clear }
 
         let count = day.completionCount
-        if count == 0 {
-            return Color.darkGray2
-        }
+        if count == 0 { return Color.darkGray2 }
 
-        // Intensity levels based on completion count
         switch count {
-        case 1:
-            return Color.recoveryGreen.opacity(0.3)
-        case 2:
-            return Color.recoveryGreen.opacity(0.5)
-        case 3...4:
-            return Color.recoveryGreen.opacity(0.7)
-        default:
-            return Color.recoveryGreen
+        case 1: return Color.recoveryGreen.opacity(0.3)
+        case 2: return Color.recoveryGreen.opacity(0.5)
+        case 3...4: return Color.recoveryGreen.opacity(0.7)
+        default: return Color.recoveryGreen
         }
     }
 
@@ -422,16 +358,14 @@ struct YearInPixelsView: View {
                 .font(.system(size: Typography.bodySize, weight: .semibold))
                 .foregroundStyle(Color.pureWhite)
 
-            HStack(spacing: Spacing.xl) {
-                VStack(spacing: Spacing.xs) {
-                    Text("\(info.completionCount)")
-                        .font(.system(size: Typography.h2Size, weight: .bold, design: .rounded))
-                        .foregroundStyle(info.completionCount > 0 ? Color.recoveryGreen : Color.mediumGray)
-                    Text("COMPLETIONS")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Color.mediumGray)
-                        .tracking(0.5)
-                }
+            VStack(spacing: Spacing.xs) {
+                Text("\(info.completionCount)")
+                    .font(.system(size: Typography.h2Size, weight: .bold, design: .rounded))
+                    .foregroundStyle(info.completionCount > 0 ? Color.recoveryGreen : Color.mediumGray)
+                Text("COMPLETIONS")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.mediumGray)
+                    .tracking(0.5)
             }
         }
         .padding(Spacing.xl)
