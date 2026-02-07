@@ -36,6 +36,9 @@ struct TaskListView: View {
     @State private var showCelebration = false
     @State private var celebrationMessage = ""
 
+    // Year in Pixels sheet
+    @State private var showYearInPixels = false
+
     // MARK: - Queries
 
     @Query(
@@ -119,9 +122,13 @@ struct TaskListView: View {
                             .font(.system(size: Typography.bodySize, weight: .medium))
                             .foregroundStyle(Color.mediumGray)
 
-                        // Streak badge
+                        // Streak badge — tappable to open Year in Pixels
                         if currentStreak > 0 {
-                            StreakBadge(count: currentStreak)
+                            Button {
+                                showYearInPixels = true
+                            } label: {
+                                StreakBadge(count: currentStreak)
+                            }
                         }
                     }
                 }
@@ -148,7 +155,11 @@ struct TaskListView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $showYearInPixels) {
+                YearInPixelsView()
+            }
             .onAppear {
+                OnboardingService.createStarterTasksIfNeeded(modelContext: modelContext)
                 updateTodayTasks()
             }
             .onChange(of: allActiveTasks) {
@@ -208,12 +219,12 @@ struct TaskListView: View {
         }
     }
 
-    /// Empty state view
+    /// Empty state view with contextual nudge
     private var emptyStateView: some View {
         EmptyStateCard(
-            icon: "checklist",
-            title: "Your day is a blank canvas.",
-            subtitle: "What are you going to crush?",
+            icon: "checkmark.circle",
+            title: "Nothing on the board.",
+            subtitle: "Tap + to add your first task. Keep it simple.",
             actionTitle: "Add Task"
         ) {
             isShowingAddSheet = true
@@ -231,8 +242,13 @@ struct TaskListView: View {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
 
-            // Show encouraging celebration message
-            celebrationMessage = EncouragingMessages.random()
+            // Check for streak milestone message first, then fall back to random
+            let streak = calculateStreak()
+            if let milestoneMsg = EncouragingMessages.milestoneMessage(for: streak) {
+                celebrationMessage = milestoneMsg
+            } else {
+                celebrationMessage = EncouragingMessages.random()
+            }
             showCelebration = true
         }
 

@@ -75,6 +75,9 @@ enum EncouragingMessages {
 
     /// Streak milestone messages (for special celebrations)
     static let streakMilestones: [Int: String] = [
+        2: "2 days in a row. That's how it starts.",
+        3: "3 days. You're building something.",
+        5: "5 days. This is becoming a habit.",
         7: "One week locked in. 🔥",
         14: "Two weeks. This isn't luck.",
         21: "Three weeks. Habits forming.",
