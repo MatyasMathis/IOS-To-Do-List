@@ -39,6 +39,14 @@ struct TaskListView: View {
     // Year in Pixels sheet
     @State private var showYearInPixels = false
 
+    // Category share sheet
+    @State private var showCategoryShare = false
+    @State private var completedCategoryName: String = ""
+    @State private var completedCategoryIcon: String = ""
+    @State private var completedCategoryColorHex: String = ""
+    @State private var completedCategoryCount: Int = 0
+    @State private var completedCategoryStreak: Int = 0
+
     // MARK: - Queries
 
     @Query(
@@ -51,6 +59,9 @@ struct TaskListView: View {
 
     @Query(sort: \TaskCompletion.completedAt, order: .reverse)
     private var allCompletions: [TaskCompletion]
+
+    @Query(sort: \CustomCategory.sortOrder)
+    private var customCategories: [CustomCategory]
 
     // MARK: - Computed Properties
 
@@ -158,6 +169,18 @@ struct TaskListView: View {
             .sheet(isPresented: $showYearInPixels) {
                 YearInPixelsView()
             }
+            .sheet(isPresented: $showCategoryShare) {
+                CategoryShareSheet(
+                    categoryName: completedCategoryName,
+                    categoryIcon: completedCategoryIcon,
+                    categoryColorHex: completedCategoryColorHex,
+                    completedCount: completedCategoryCount,
+                    totalCount: completedCategoryCount,
+                    streak: completedCategoryStreak
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
             .onAppear {
                 OnboardingService.createStarterTasksIfNeeded(modelContext: modelContext)
                 updateTodayTasks()
@@ -250,12 +273,80 @@ struct TaskListView: View {
                 celebrationMessage = EncouragingMessages.random()
             }
             showCelebration = true
+
+            // Check if all tasks in this category are now completed
+            checkCategoryCompletion(for: task)
         }
 
         // Update immediately - completed tasks stay in list but move to end
         withAnimation {
             updateTodayTasks()
         }
+    }
+
+    /// Checks if all today-tasks in the given task's category are completed.
+    /// If so, triggers the share sheet after a short delay.
+    private func checkCategoryCompletion(for task: TodoTask) {
+        guard let category = task.category else { return }
+
+        let categoryTasks = todayTasks.filter { $0.category == category }
+        guard categoryTasks.count >= 2 else { return } // Only trigger for 2+ tasks
+
+        let allDone = categoryTasks.allSatisfy { $0.isCompletedToday() }
+        guard allDone else { return }
+
+        // Populate share data
+        completedCategoryName = category
+        completedCategoryIcon = Color.categoryIcon(for: category, customCategories: customCategories)
+        completedCategoryColorHex = categoryColorHex(for: category)
+        completedCategoryCount = categoryTasks.count
+        completedCategoryStreak = categoryStreak(for: category)
+
+        // Delay so celebration overlay plays first
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            showCategoryShare = true
+        }
+    }
+
+    /// Returns hex color string for a category
+    private func categoryColorHex(for category: String) -> String {
+        switch category.lowercased() {
+        case "work": return "4A90E2"
+        case "personal": return "F5A623"
+        case "health": return "2DD881"
+        case "shopping": return "BD10E0"
+        default:
+            if let custom = customCategories.first(where: { $0.name == category }) {
+                return custom.colorHex
+            }
+            return "808080"
+        }
+    }
+
+    /// Calculates category-specific streak (consecutive days with at least one completion in category)
+    private func categoryStreak(for category: String) -> Int {
+        let calendar = Calendar.current
+        let categoryCompletions = allCompletions.filter { $0.task?.category == category }
+        let dates = Set(categoryCompletions.map { calendar.startOfDay(for: $0.completedAt) })
+
+        guard !dates.isEmpty else { return 0 }
+
+        var streak = 0
+        var checkDate = calendar.startOfDay(for: Date())
+
+        if !dates.contains(checkDate) {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
+            if !dates.contains(yesterday) { return 0 }
+            checkDate = yesterday
+        }
+
+        while dates.contains(checkDate) {
+            streak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
+        }
+
+        return streak
     }
 
     private func refreshTasks() async {
