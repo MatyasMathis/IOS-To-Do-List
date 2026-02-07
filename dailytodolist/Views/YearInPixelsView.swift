@@ -172,6 +172,16 @@ struct YearInPixelsView: View {
             .navigationTitle("Year in Pixels")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        shareYearCard()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.recoveryGreen)
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Color.recoveryGreen)
@@ -180,6 +190,24 @@ struct YearInPixelsView: View {
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
+    }
+
+    // MARK: - Share
+
+    private func shareYearCard() {
+        let card = ShareableYearCard(
+            year: selectedYear,
+            monthRows: monthRows,
+            monthNames: monthNames,
+            totalReps: totalCompletions,
+            activeDays: activeDays,
+            bestStreak: longestStreak
+        )
+
+        ShareService.renderAndShare(
+            view: card,
+            size: CGSize(width: 1080, height: 1920)
+        )
     }
 
     // MARK: - Subviews
