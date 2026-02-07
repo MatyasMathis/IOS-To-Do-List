@@ -106,6 +106,7 @@ struct CategoryTasksList: View {
     }
 
     /// Calculates completion rate for recurring tasks, or total for one-time
+    /// Accounts for recurrence schedule: weekly tasks only count scheduled days
     private func completionRate(for task: TodoTask) -> Double {
         guard let completions = task.completions, !completions.isEmpty else { return 0 }
         guard task.recurrenceType != .none else {
@@ -114,9 +115,49 @@ struct CategoryTasksList: View {
         }
 
         let calendar = Calendar.current
-        let daysSinceCreation = max(calendar.dateComponents([.day], from: task.createdAt, to: Date()).day ?? 1, 1)
+        let scheduledDays = countScheduledDays(for: task, calendar: calendar)
         let completionDays = Set(completions.map { calendar.startOfDay(for: $0.completedAt) }).count
-        return Double(completionDays) / Double(daysSinceCreation)
+        return min(Double(completionDays) / Double(scheduledDays), 1.0)
+    }
+
+    /// Counts scheduled days for a task based on its recurrence type
+    private func countScheduledDays(for task: TodoTask, calendar: Calendar) -> Int {
+        let startDate = calendar.startOfDay(for: task.createdAt)
+        let today = calendar.startOfDay(for: Date())
+
+        switch task.recurrenceType {
+        case .daily:
+            return max((calendar.dateComponents([.day], from: startDate, to: today).day ?? 0) + 1, 1)
+
+        case .weekly:
+            let selectedWeekdays = task.selectedWeekdays
+            guard !selectedWeekdays.isEmpty else { return 1 }
+            var count = 0
+            var date = startDate
+            while date <= today {
+                let weekday = calendar.component(.weekday, from: date)
+                if selectedWeekdays.contains(weekday) { count += 1 }
+                guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
+                date = next
+            }
+            return max(count, 1)
+
+        case .monthly:
+            let selectedDays = task.selectedMonthDays
+            guard !selectedDays.isEmpty else { return 1 }
+            var count = 0
+            var date = startDate
+            while date <= today {
+                let dayOfMonth = calendar.component(.day, from: date)
+                if selectedDays.contains(dayOfMonth) { count += 1 }
+                guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
+                date = next
+            }
+            return max(count, 1)
+
+        case .none:
+            return 1
+        }
     }
 }
 
