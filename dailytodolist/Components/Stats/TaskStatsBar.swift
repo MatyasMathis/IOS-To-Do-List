@@ -28,11 +28,49 @@ struct TaskStatsBar: View {
     private var completionRate: Double? {
         guard task.recurrenceType != .none else { return nil }
 
-        let daysSinceCreation = calendar.dateComponents([.day], from: task.createdAt, to: Date()).day ?? 1
-        guard daysSinceCreation > 0 else { return nil }
+        let scheduledDays = countScheduledDays()
+        guard scheduledDays > 0 else { return nil }
 
         let completionDays = Set(task.completions?.map { calendar.startOfDay(for: $0.completedAt) } ?? []).count
-        return Double(completionDays) / Double(daysSinceCreation)
+        return min(Double(completionDays) / Double(scheduledDays), 1.0)
+    }
+
+    /// Counts scheduled days based on recurrence type
+    private func countScheduledDays() -> Int {
+        let startDate = calendar.startOfDay(for: task.createdAt)
+        let today = calendar.startOfDay(for: Date())
+
+        switch task.recurrenceType {
+        case .daily:
+            return max((calendar.dateComponents([.day], from: startDate, to: today).day ?? 0) + 1, 1)
+
+        case .weekly:
+            let selectedWeekdays = task.selectedWeekdays
+            guard !selectedWeekdays.isEmpty else { return 1 }
+            var count = 0
+            var date = startDate
+            while date <= today {
+                if selectedWeekdays.contains(calendar.component(.weekday, from: date)) { count += 1 }
+                guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
+                date = next
+            }
+            return max(count, 1)
+
+        case .monthly:
+            let selectedDays = task.selectedMonthDays
+            guard !selectedDays.isEmpty else { return 1 }
+            var count = 0
+            var date = startDate
+            while date <= today {
+                if selectedDays.contains(calendar.component(.day, from: date)) { count += 1 }
+                guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
+                date = next
+            }
+            return max(count, 1)
+
+        case .none:
+            return 1
+        }
     }
 
     private var firstCompletionDate: Date? {
