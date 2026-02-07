@@ -2,14 +2,22 @@
 //  StatsView.swift
 //  dailytodolist
 //
-//  Purpose: Task-centric statistics view showing completion patterns
-//  Design: Select a task to see its calendar and history
+//  Purpose: Category-centric statistics view showing completion patterns
+//  Design: Category pill selector with overview stats, weekly rhythm, trends, and per-task breakdown
 //
 
 import SwiftUI
 import SwiftData
 
-/// Statistics view for viewing task completion history and patterns
+/// Statistics view filtered by category
+///
+/// Features:
+/// - Horizontal scrollable category pills (All + each category)
+/// - Quick numbers bar (total reps, rate, streak, best streak)
+/// - Weekly rhythm bar chart
+/// - This month vs last month trend
+/// - Per-task list with streaks and completion rates
+/// - Monthly completion calendar
 struct StatsView: View {
 
     // MARK: - Environment
@@ -22,54 +30,175 @@ struct StatsView: View {
     @Query(filter: #Predicate<TodoTask> { $0.isActive }, sort: \TodoTask.title)
     private var allTasks: [TodoTask]
 
+    @Query(sort: \TaskCompletion.completedAt, order: .reverse)
+    private var allCompletions: [TaskCompletion]
+
+    @Query(sort: \CustomCategory.sortOrder)
+    private var customCategories: [CustomCategory]
+
     // MARK: - State
 
-    @State private var selectedTask: TodoTask?
-    @State private var searchText: String = ""
-    @State private var isDropdownExpanded: Bool = false
+    @State private var selectedCategory: String? = nil // nil means "All"
     @State private var displayedMonth: Date = Date()
-    @State private var showEditSheet: Bool = false
+
+    // MARK: - Computed Properties
+
+    /// All unique categories from active tasks
+    private var categories: [String] {
+        let builtIn = ["Work", "Personal", "Health", "Shopping", "Other"]
+        let custom = customCategories.map { $0.name }
+        let all = builtIn + custom
+
+        // Only return categories that have at least one task
+        let taskCategories = Set(allTasks.compactMap { $0.category })
+        return all.filter { taskCategories.contains($0) }
+    }
+
+    /// Tasks filtered by selected category
+    private var filteredTasks: [TodoTask] {
+        guard let category = selectedCategory else { return allTasks }
+        return allTasks.filter { $0.category == category }
+    }
+
+    /// Completions filtered by selected category
+    private var filteredCompletions: [TaskCompletion] {
+        guard let category = selectedCategory else { return allCompletions }
+        return allCompletions.filter { $0.task?.category == category }
+    }
+
+    /// Completion dates for the filtered set
+    private var filteredCompletionDates: [Date] {
+        filteredCompletions.map { $0.completedAt }
+    }
+
+    /// Unique completion dates for calendar
+    private var filteredCompletionDateSet: Set<Date> {
+        let calendar = Calendar.current
+        return Set(filteredCompletions.map { calendar.startOfDay(for: $0.completedAt) })
+    }
+
+    /// Total completions count
+    private var totalReps: Int {
+        filteredCompletions.count
+    }
+
+    /// Overall completion rate for recurring tasks
+    private var completionRate: Int? {
+        let calendar = Calendar.current
+        let recurringTasks = filteredTasks.filter { $0.recurrenceType != .none }
+        guard !recurringTasks.isEmpty else { return nil }
+
+        var totalDays = 0
+        var totalCompletionDays = 0
+
+        for task in recurringTasks {
+            let daysSinceCreation = max(calendar.dateComponents([.day], from: task.createdAt, to: Date()).day ?? 1, 1)
+            let completionDays = Set(task.completions?.map { calendar.startOfDay(for: $0.completedAt) } ?? []).count
+            totalDays += daysSinceCreation
+            totalCompletionDays += completionDays
+        }
+
+        guard totalDays > 0 else { return nil }
+        return Int(Double(totalCompletionDays) / Double(totalDays) * 100)
+    }
+
+    /// Current streak (consecutive days with at least one completion in filtered set)
+    private var currentStreak: Int {
+        guard !filteredCompletions.isEmpty else { return 0 }
+
+        let calendar = Calendar.current
+        let completionDates = filteredCompletionDateSet
+        var streak = 0
+        var checkDate = calendar.startOfDay(for: Date())
+
+        if !completionDates.contains(checkDate) {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
+            if !completionDates.contains(yesterday) { return 0 }
+            checkDate = yesterday
+        }
+
+        while completionDates.contains(checkDate) {
+            streak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
+        }
+
+        return streak
+    }
+
+    /// Best streak ever for the filtered set
+    private var bestStreak: Int {
+        let calendar = Calendar.current
+        let sortedDates = filteredCompletionDateSet.sorted()
+        guard !sortedDates.isEmpty else { return 0 }
+
+        var maxStreak = 1
+        var current = 1
+
+        for i in 1..<sortedDates.count {
+            if let expected = calendar.date(byAdding: .day, value: 1, to: sortedDates[i - 1]),
+               calendar.isDate(expected, inSameDayAs: sortedDates[i]) {
+                current += 1
+                maxStreak = max(maxStreak, current)
+            } else {
+                current = 1
+            }
+        }
+
+        return maxStreak
+    }
+
+    /// Color for the selected category
+    private var categoryColor: Color {
+        guard let category = selectedCategory else { return .recoveryGreen }
+        return Color.categoryColor(for: category, customCategories: customCategories)
+    }
 
     // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
                 Color.brandBlack.ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
-                        // Task selector
-                        TaskSearchDropdown(
-                            tasks: allTasks,
-                            selectedTask: $selectedTask,
-                            searchText: $searchText,
-                            isExpanded: $isDropdownExpanded
-                        )
-                        .zIndex(1) // Ensure dropdown appears above other content
+                        // Category pill selector
+                        categoryPills
 
-                        if let task = selectedTask {
-                            // Calendar
-                            CompletionCalendar(
-                                task: task,
-                                displayedMonth: $displayedMonth
-                            ) { date in
-                                // Could scroll to date in history
+                        if filteredCompletions.isEmpty && filteredTasks.isEmpty {
+                            emptyState
+                        } else {
+                            // Quick numbers
+                            quickNumbers
+
+                            // Weekly rhythm
+                            if !filteredCompletions.isEmpty {
+                                WeeklyRhythmChart(
+                                    completions: filteredCompletionDates,
+                                    accentColor: categoryColor
+                                )
                             }
 
-                            // Stats bar
-                            TaskStatsBar(task: task)
+                            // Monthly trend
+                            if !filteredCompletions.isEmpty {
+                                MonthlyTrendCard(
+                                    completions: filteredCompletionDates,
+                                    accentColor: categoryColor
+                                )
+                            }
 
-                            // Edit Task button
-                            editTaskButton
+                            // Tasks in category
+                            if !filteredTasks.isEmpty {
+                                CategoryTasksList(tasks: filteredTasks)
+                            }
 
-                            // History list
-                            CompletionHistoryList(task: task)
-
-                        } else {
-                            // Empty state - prompt to select a task
-                            selectTaskPrompt
+                            // Completion calendar
+                            CategoryCompletionCalendar(
+                                completionDates: filteredCompletionDateSet,
+                                displayedMonth: $displayedMonth,
+                                accentColor: categoryColor
+                            )
                         }
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -90,7 +219,7 @@ struct StatsView: View {
                 }
 
                 ToolbarItem(placement: .principal) {
-                    Text("Task Statistics")
+                    Text("Statistics")
                         .font(.system(size: Typography.h4Size, weight: .bold))
                         .foregroundStyle(Color.pureWhite)
                 }
@@ -98,60 +227,115 @@ struct StatsView: View {
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
-        .onAppear {
-            // Auto-select first task if none selected and tasks exist
-            if selectedTask == nil, let firstTask = allTasks.first {
-                selectedTask = firstTask
-            }
-        }
-        .sheet(isPresented: $showEditSheet) {
-            if let task = selectedTask {
-                EditTaskSheet(task: task) {
-                    // On delete: clear selection
-                    selectedTask = nil
-                }
-            }
-        }
     }
 
     // MARK: - Subviews
 
-    private var editTaskButton: some View {
-        Button {
-            showEditSheet = true
-        } label: {
+    /// Horizontal scrollable category pills
+    private var categoryPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 14, weight: .semibold))
-                Text("Edit Task")
-                    .font(.system(size: Typography.bodySize, weight: .medium))
+                // "All" pill
+                categoryPill(label: "All", category: nil, color: .recoveryGreen)
+
+                // Category pills
+                ForEach(categories, id: \.self) { category in
+                    categoryPill(
+                        label: category,
+                        category: category,
+                        color: Color.categoryColor(for: category, customCategories: customCategories)
+                    )
+                }
             }
-            .foregroundStyle(Color.pureWhite)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md)
-            .background(Color.darkGray2)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+            .padding(.horizontal, Spacing.xs)
         }
     }
 
-    private var selectTaskPrompt: some View {
+    private func categoryPill(label: String, category: String?, color: Color) -> some View {
+        let isSelected = selectedCategory == category
+
+        return Button {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectedCategory = category
+            }
+        } label: {
+            Text(label.uppercased())
+                .font(.system(size: Typography.captionSize, weight: .bold))
+                .foregroundStyle(isSelected ? Color.brandBlack : color)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? color : color.opacity(0.15))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Quick numbers bar
+    private var quickNumbers: some View {
+        HStack(spacing: 0) {
+            StatItem(
+                label: "TOTAL REPS",
+                value: "\(totalReps)",
+                color: categoryColor
+            )
+
+            if let rate = completionRate {
+                StatItem(
+                    label: "RATE",
+                    value: "\(rate)%",
+                    color: rateColor(for: rate)
+                )
+            }
+
+            StatItem(
+                label: "STREAK",
+                value: "\(currentStreak)",
+                color: currentStreak > 0 ? categoryColor : .mediumGray
+            )
+
+            StatItem(
+                label: "BEST",
+                value: "\(bestStreak)",
+                color: bestStreak > 0 ? categoryColor : .mediumGray
+            )
+        }
+        .padding(.vertical, Spacing.md)
+        .background(Color.darkGray1)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
+    }
+
+    /// Empty state
+    private var emptyState: some View {
         VStack(spacing: Spacing.lg) {
-            Image(systemName: "chart.bar.doc.horizontal")
+            Image(systemName: "chart.bar")
                 .font(.system(size: 60, weight: .light))
                 .foregroundStyle(Color.mediumGray)
 
             VStack(spacing: Spacing.sm) {
-                Text("Select a Task")
+                Text("No data yet")
                     .font(.system(size: Typography.h3Size, weight: .bold))
                     .foregroundStyle(Color.pureWhite)
 
-                Text("Choose a task above to view its\ncompletion history and statistics")
+                Text("Complete tasks to see your stats here.")
                     .font(.system(size: Typography.bodySize, weight: .regular))
                     .foregroundStyle(Color.mediumGray)
                     .multilineTextAlignment(.center)
             }
         }
         .padding(.vertical, Spacing.xxl * 2)
+    }
+
+    // MARK: - Helpers
+
+    private func rateColor(for rate: Int) -> Color {
+        if rate >= 80 { return .recoveryGreen }
+        if rate >= 50 { return .personalOrange }
+        return .strainRed
     }
 }
 
@@ -161,24 +345,35 @@ struct StatsView: View {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: TodoTask.self, TaskCompletion.self, CustomCategory.self, configurations: config)
 
-    // Create sample tasks
     let task1 = TodoTask(title: "Morning Exercise", category: "Health", recurrenceType: .daily)
-    let task2 = TodoTask(title: "Buy groceries", category: "Shopping")
+    let task2 = TodoTask(title: "Evening Walk", category: "Health", recurrenceType: .daily)
     let task3 = TodoTask(title: "Team standup", category: "Work", recurrenceType: .weekly, selectedWeekdays: [2, 3, 4, 5, 6])
     let task4 = TodoTask(title: "Read for 30 minutes", category: "Personal", recurrenceType: .daily)
+    let task5 = TodoTask(title: "Buy groceries", category: "Shopping")
 
     container.mainContext.insert(task1)
     container.mainContext.insert(task2)
     container.mainContext.insert(task3)
     container.mainContext.insert(task4)
+    container.mainContext.insert(task5)
 
-    // Add completions
     let calendar = Calendar.current
-    for daysAgo in [0, 1, 2, 3, 5, 6, 8, 10, 12, 15, 20] {
+    for daysAgo in [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] {
         if let date = calendar.date(byAdding: .day, value: -daysAgo, to: Date()),
-           let dateWithTime = calendar.date(bySettingHour: 9, minute: Int.random(in: 0...59), second: 0, of: date) {
-            let completion = TaskCompletion(task: task1, completedAt: dateWithTime)
-            container.mainContext.insert(completion)
+           let time = calendar.date(bySettingHour: 9, minute: Int.random(in: 0...59), second: 0, of: date) {
+            container.mainContext.insert(TaskCompletion(task: task1, completedAt: time))
+        }
+    }
+    for daysAgo in [0, 1, 2, 5, 8] {
+        if let date = calendar.date(byAdding: .day, value: -daysAgo, to: Date()),
+           let time = calendar.date(bySettingHour: 18, minute: 30, second: 0, of: date) {
+            container.mainContext.insert(TaskCompletion(task: task2, completedAt: time))
+        }
+    }
+    for daysAgo in [0, 1, 3, 4, 7, 8] {
+        if let date = calendar.date(byAdding: .day, value: -daysAgo, to: Date()),
+           let time = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: date) {
+            container.mainContext.insert(TaskCompletion(task: task3, completedAt: time))
         }
     }
 
