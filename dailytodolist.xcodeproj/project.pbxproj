@@ -303,7 +303,7 @@
 				CODE_SIGN_ENTITLEMENTS = TodayTasksWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 6J3GC29ARF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TodayTasksWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TodayTasksWidget;
@@ -334,7 +334,7 @@
 				CODE_SIGN_ENTITLEMENTS = TodayTasksWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 6J3GC29ARF;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TodayTasksWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TodayTasksWidget;
