@@ -2,15 +2,16 @@
 //  ShareableCategoryCard.swift
 //  Reps
 //
-//  Purpose: Strava-style shareable card shown when all tasks in a category are completed
-//  Design: Story-sized (1080x1920) with user photo background, dark overlay, category stats
+//  Purpose: Branded shareable card for category completion wins
+//  Design: Matches Whoop-inspired app theme — dark, athletic, SF Pro
 //
 
 import SwiftUI
 
-/// A Strava-style branded card for sharing category completion wins.
+/// Branded 1080x1920 card rendered offscreen via ImageRenderer.
 ///
-/// Rendered offscreen via ImageRenderer — uses raw color values, not theme colors.
+/// Uses raw color values (not theme colors) since ImageRenderer
+/// runs outside the view hierarchy.
 struct ShareableCategoryCard: View {
 
     // MARK: - Properties
@@ -21,6 +22,7 @@ struct ShareableCategoryCard: View {
     let completedCount: Int
     let totalCount: Int
     let streak: Int
+    let subtitle: String
     let backgroundImage: UIImage?
 
     // MARK: - Constants
@@ -28,139 +30,128 @@ struct ShareableCategoryCard: View {
     private let cardWidth: CGFloat = 1080
     private let cardHeight: CGFloat = 1920
 
-    /// Category color derived from hex
-    private var categoryColor: Color {
-        Color(hex: categoryColorHex)
-    }
+    private var categoryColor: Color { Color(hex: categoryColorHex) }
+
+    // Raw theme colors for ImageRenderer
+    private let bgBlack = Color(red: 0.04, green: 0.04, blue: 0.04)      // brandBlack
+    private let surfaceDark = Color(red: 0.10, green: 0.10, blue: 0.10)   // darkGray1
+    private let surfaceMid = Color(red: 0.165, green: 0.165, blue: 0.165) // darkGray2
+    private let textSecondary = Color(red: 0.50, green: 0.50, blue: 0.50) // mediumGray
 
     // MARK: - Body
 
     var body: some View {
         ZStack {
-            // Layer 1: Photo background or solid dark
+            // Background
             if let image = backgroundImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: cardWidth, height: cardHeight)
                     .clipped()
+
+                // Heavy overlay for readability
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.4),
+                        Color.black.opacity(0.55),
+                        Color.black.opacity(0.9)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             } else {
-                Color(red: 0.04, green: 0.04, blue: 0.04)
+                // Gradient matching app's statsCardStyle
+                LinearGradient(
+                    colors: [surfaceDark, bgBlack],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             }
 
-            // Layer 2: Dark gradient overlay for text readability
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.3),
-                    Color.black.opacity(0.5),
-                    Color.black.opacity(0.85)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            // Layer 3: Content
+            // Content
             VStack(spacing: 0) {
                 Spacer()
 
-                // Category pill
-                categoryPill
-                    .padding(.bottom, 40)
+                // Category label
+                HStack(spacing: 14) {
+                    Image(systemName: categoryIcon)
+                        .font(.system(size: 28, weight: .semibold))
+                    Text(categoryName.uppercased())
+                        .font(.system(size: 28, weight: .bold))
+                        .tracking(3)
+                }
+                .foregroundStyle(categoryColor)
+                .padding(.bottom, 48)
 
-                // Big completion count
-                completionBlock
-                    .padding(.bottom, 32)
+                // Big number
+                Text("\(completedCount)/\(totalCount)")
+                    .font(.system(size: 120, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.bottom, 16)
 
-                // "completed today" label
-                Text("COMPLETED TODAY")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .tracking(3)
-                    .padding(.bottom, 60)
+                // Subtitle
+                Text(subtitle.uppercased())
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(textSecondary)
+                    .tracking(2)
+                    .padding(.bottom, 56)
 
-                // Streak (if active)
-                if streak > 0 {
-                    streakRow
-                        .padding(.bottom, 60)
+                // Streak pill
+                if streak > 1 {
+                    HStack(spacing: 10) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(Color(hex: "FF4444"))
+
+                        Text("\(streak) day streak")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 16)
+                    .background(
+                        Capsule()
+                            .fill(.white.opacity(0.08))
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                    .padding(.bottom, 56)
                 }
 
                 Spacer()
-                    .frame(height: 80)
+                    .frame(height: 40)
 
                 // Branding
-                branding
-                    .padding(.bottom, 120)
+                Text("reps.")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(textSecondary.opacity(0.6))
+                    .tracking(1)
+                    .padding(.bottom, 100)
+            }
+
+            // Subtle border matching app card style
+            if backgroundImage == nil {
+                RoundedRectangle(cornerRadius: 0)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [surfaceMid.opacity(0.4), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 2
+                    )
             }
         }
         .frame(width: cardWidth, height: cardHeight)
-    }
-
-    // MARK: - Subviews
-
-    private var categoryPill: some View {
-        HStack(spacing: 12) {
-            Image(systemName: categoryIcon)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(categoryColor)
-
-            Text(categoryName.uppercased())
-                .font(.system(size: 32, weight: .bold))
-                .foregroundStyle(categoryColor)
-                .tracking(2)
-        }
-        .padding(.horizontal, 40)
-        .padding(.vertical, 20)
-        .background(
-            Capsule()
-                .fill(Color.black.opacity(0.5))
-                .overlay(
-                    Capsule()
-                        .strokeBorder(categoryColor.opacity(0.4), lineWidth: 2)
-                )
-        )
-    }
-
-    private var completionBlock: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("\(completedCount)")
-                .font(.system(size: 140, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text("/\(totalCount)")
-                .font(.system(size: 72, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.4))
-        }
-    }
-
-    private var streakRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 32, weight: .bold))
-                .foregroundStyle(Color(red: 1.0, green: 0.27, blue: 0.27))
-
-            Text("\(streak) day streak")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-        }
-        .padding(.horizontal, 36)
-        .padding(.vertical, 18)
-        .background(
-            Capsule()
-                .fill(Color.white.opacity(0.1))
-        )
-    }
-
-    private var branding: some View {
-        Text("reps.")
-            .font(.system(size: 32, weight: .bold, design: .rounded))
-            .foregroundStyle(.white.opacity(0.35))
-            .tracking(2)
     }
 }
 
 // MARK: - Preview
 
-#Preview("Category Card - With Photo") {
+#Preview("Card - No Photo") {
     ShareableCategoryCard(
         categoryName: "Health",
         categoryIcon: "heart.fill",
@@ -168,8 +159,9 @@ struct ShareableCategoryCard: View {
         completedCount: 4,
         totalCount: 4,
         streak: 7,
+        subtitle: "completed today",
         backgroundImage: nil
     )
-    .previewLayout(.fixed(width: 1080, height: 1920))
-    .scaleEffect(0.3)
+    .scaleEffect(0.25)
+    .frame(width: 270, height: 480)
 }

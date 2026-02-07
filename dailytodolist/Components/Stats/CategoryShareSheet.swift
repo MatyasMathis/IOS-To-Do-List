@@ -2,19 +2,17 @@
 //  CategoryShareSheet.swift
 //  Reps
 //
-//  Purpose: Full-screen share sheet for category completion cards
-//  Design: Photo picker (camera + gallery), live card preview, share button
+//  Purpose: Share sheet for category completion cards
+//  Design: Whoop-inspired dark theme with photo picker
 //
 
 import SwiftUI
 import PhotosUI
 
-/// Sheet presented when a user completes all tasks in a category.
+/// Sheet for customizing and sharing a category completion card.
 ///
-/// Allows them to:
-/// 1. See a live preview of their branded card
-/// 2. Pick a photo from gallery or take one with camera
-/// 3. Share the rendered card via the system share sheet
+/// User can pick a background photo (camera or gallery), preview
+/// the card live, and share via the system share sheet.
 struct CategoryShareSheet: View {
 
     // MARK: - Environment
@@ -29,6 +27,7 @@ struct CategoryShareSheet: View {
     let completedCount: Int
     let totalCount: Int
     let streak: Int
+    let subtitle: String
 
     // MARK: - State
 
@@ -38,9 +37,7 @@ struct CategoryShareSheet: View {
 
     // MARK: - Computed
 
-    private var categoryColor: Color {
-        Color(hex: categoryColorHex)
-    }
+    private var categoryColor: Color { Color(hex: categoryColorHex) }
 
     private var cardView: ShareableCategoryCard {
         ShareableCategoryCard(
@@ -50,6 +47,7 @@ struct CategoryShareSheet: View {
             completedCount: completedCount,
             totalCount: totalCount,
             streak: streak,
+            subtitle: subtitle,
             backgroundImage: selectedPhoto
         )
     }
@@ -59,19 +57,18 @@ struct CategoryShareSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.04, green: 0.04, blue: 0.04)
-                    .ignoresSafeArea()
+                Color.brandBlack.ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Card preview
                     cardPreview
-                        .padding(.top, Spacing.md)
+                        .padding(.top, Spacing.lg)
 
                     Spacer()
 
                     // Photo source buttons
                     photoButtons
-                        .padding(.bottom, Spacing.lg)
+                        .padding(.bottom, Spacing.xl)
 
                     // Share button
                     shareButton
@@ -82,12 +79,10 @@ struct CategoryShareSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
+                    Button { dismiss() } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.pureWhite)
+                            .font(.system(size: Typography.bodySize, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
                     }
                 }
 
@@ -97,7 +92,7 @@ struct CategoryShareSheet: View {
                         .foregroundStyle(Color.pureWhite)
                 }
             }
-            .toolbarBackground(Color(red: 0.04, green: 0.04, blue: 0.04), for: .navigationBar)
+            .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .onChange(of: photosPickerItem) { _, newItem in
                 guard let newItem else { return }
@@ -122,45 +117,43 @@ struct CategoryShareSheet: View {
             .frame(width: 1080, height: 1920)
             .scaleEffect(0.22)
             .frame(width: 1080 * 0.22, height: 1920 * 0.22)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(color: categoryColor.opacity(0.3), radius: 20, y: 10)
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
+            .shadowLevel1()
     }
 
     private var photoButtons: some View {
-        HStack(spacing: Spacing.lg) {
-            // Camera button
-            Button {
-                showCamera = true
-            } label: {
-                VStack(spacing: Spacing.sm) {
+        HStack(spacing: Spacing.md) {
+            // Camera
+            Button { showCamera = true } label: {
+                VStack(spacing: Spacing.xs) {
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                     Text("CAMERA")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: Typography.captionSize, weight: .bold))
                         .tracking(0.5)
                 }
                 .foregroundStyle(Color.pureWhite)
-                .frame(width: 80, height: 70)
+                .frame(width: 80, height: 64)
                 .background(Color.darkGray2)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
             }
 
-            // Gallery button
+            // Gallery
             PhotosPicker(selection: $photosPickerItem, matching: .images) {
-                VStack(spacing: Spacing.sm) {
+                VStack(spacing: Spacing.xs) {
                     Image(systemName: "photo.fill")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                     Text("GALLERY")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: Typography.captionSize, weight: .bold))
                         .tracking(0.5)
                 }
                 .foregroundStyle(Color.pureWhite)
-                .frame(width: 80, height: 70)
+                .frame(width: 80, height: 64)
                 .background(Color.darkGray2)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
             }
 
-            // Remove photo button (only if photo selected)
+            // Remove photo
             if selectedPhoto != nil {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -168,15 +161,15 @@ struct CategoryShareSheet: View {
                         photosPickerItem = nil
                     }
                 } label: {
-                    VStack(spacing: Spacing.sm) {
+                    VStack(spacing: Spacing.xs) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(.system(size: 20, weight: .semibold))
                         Text("REMOVE")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: Typography.captionSize, weight: .bold))
                             .tracking(0.5)
                     }
                     .foregroundStyle(Color.strainRed)
-                    .frame(width: 80, height: 70)
+                    .frame(width: 80, height: 64)
                     .background(Color.darkGray2)
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
                 }
@@ -193,22 +186,21 @@ struct CategoryShareSheet: View {
         } label: {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                 Text("Share")
                     .font(.system(size: Typography.bodySize, weight: .bold))
             }
             .foregroundStyle(Color.brandBlack)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.lg)
+            .frame(height: ComponentSize.buttonHeight)
             .background(categoryColor)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
         }
     }
 }
 
 // MARK: - Camera View (UIKit bridge)
 
-/// Wraps UIImagePickerController for camera access
 struct CameraView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Environment(\.dismiss) private var dismiss
@@ -222,16 +214,11 @@ struct CameraView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: CameraView
-
-        init(_ parent: CameraView) {
-            self.parent = parent
-        }
+        init(_ parent: CameraView) { self.parent = parent }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let image = info[.originalImage] as? UIImage {
@@ -248,13 +235,14 @@ struct CameraView: UIViewControllerRepresentable {
 
 // MARK: - Preview
 
-#Preview("Category Share Sheet") {
+#Preview {
     CategoryShareSheet(
         categoryName: "Health",
         categoryIcon: "heart.fill",
         categoryColorHex: "2DD881",
         completedCount: 4,
         totalCount: 4,
-        streak: 7
+        streak: 7,
+        subtitle: "completed today"
     )
 }

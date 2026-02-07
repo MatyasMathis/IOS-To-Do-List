@@ -45,7 +45,12 @@ struct TaskListView: View {
     @State private var completedCategoryIcon: String = ""
     @State private var completedCategoryColorHex: String = ""
     @State private var completedCategoryCount: Int = 0
+    @State private var completedCategoryTotal: Int = 0
     @State private var completedCategoryStreak: Int = 0
+    @State private var completedCategorySubtitle: String = ""
+
+    // Share toast (non-intrusive nudge)
+    @State private var showShareToast = false
 
     // MARK: - Queries
 
@@ -114,6 +119,29 @@ struct TaskListView: View {
                     }
                 }
 
+                // Share toast — non-intrusive, tappable, auto-dismisses
+                if showShareToast {
+                    VStack {
+                        Spacer()
+                        ShareToastBanner(
+                            categoryName: completedCategoryName,
+                            categoryColorHex: completedCategoryColorHex,
+                            categoryIcon: completedCategoryIcon,
+                            onTap: {
+                                withAnimation { showShareToast = false }
+                                showCategoryShare = true
+                            },
+                            onDismiss: {
+                                withAnimation { showShareToast = false }
+                            }
+                        )
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.bottom, 140) // Above FAB + tab bar
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    .zIndex(1)
+                }
+
                 // Celebration overlay for task completion
                 CelebrationOverlay(message: celebrationMessage, isShowing: $showCelebration)
             }
@@ -175,8 +203,9 @@ struct TaskListView: View {
                     categoryIcon: completedCategoryIcon,
                     categoryColorHex: completedCategoryColorHex,
                     completedCount: completedCategoryCount,
-                    totalCount: completedCategoryCount,
-                    streak: completedCategoryStreak
+                    totalCount: completedCategoryTotal,
+                    streak: completedCategoryStreak,
+                    subtitle: completedCategorySubtitle
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
@@ -284,31 +313,138 @@ struct TaskListView: View {
         }
     }
 
-    /// Checks if all today-tasks in the given task's category are completed.
-    /// If so, triggers the share sheet after a short delay.
+    // MARK: - Category Completion Detection
+
+    /// Checks two triggers after completing a task:
+    /// 1. All today-tasks in category done (3+ tasks)
+    /// 2. Weekly milestone: all planned recurring sessions for the week done
     private func checkCategoryCompletion(for task: TodoTask) {
         guard let category = task.category else { return }
 
+        // Trigger 1: All of today's tasks in this category are done
         let categoryTasks = todayTasks.filter { $0.category == category }
-        guard categoryTasks.count >= 2 else { return } // Only trigger for 2+ tasks
+        let allTodayDone = categoryTasks.count >= 3 && categoryTasks.allSatisfy { $0.isCompletedToday() }
 
-        let allDone = categoryTasks.allSatisfy { $0.isCompletedToday() }
-        guard allDone else { return }
+        if allTodayDone {
+            let dedupKey = "share_today_\(category)_\(todayDateString)"
+            if !UserDefaults.standard.bool(forKey: dedupKey) {
+                UserDefaults.standard.set(true, forKey: dedupKey)
+                showSharePrompt(
+                    category: category,
+                    completed: categoryTasks.count,
+                    total: categoryTasks.count,
+                    subtitle: "completed today"
+                )
+                return
+            }
+        }
 
-        // Populate share data
+        // Trigger 2: Weekly milestone — all planned recurring sessions this week are done
+        checkWeeklyMilestone(for: category)
+    }
+
+    /// Checks if all recurring tasks in a category have been completed for every
+    /// scheduled day this week (Mon–today). E.g. 4 gym sessions planned, 4 done.
+    private func checkWeeklyMilestone(for category: String) {
+        let calendar = Calendar.current
+        let today = Date()
+
+        // Get all active recurring tasks in this category
+        let recurringTasks = allActiveTasks.filter {
+            $0.category == category && $0.recurrenceType != .none && $0.isActive
+        }
+        guard recurringTasks.count >= 1 else { return }
+
+        // Calculate week range: Monday through today
+        let weekday = calendar.component(.weekday, from: today)
+        let daysSinceMonday = (weekday + 5) % 7 // Mon=0, Tue=1, ... Sun=6
+        guard let weekStart = calendar.date(byAdding: .day, value: -daysSinceMonday, to: calendar.startOfDay(for: today)) else { return }
+
+        var totalScheduled = 0
+        var totalCompleted = 0
+
+        for task in recurringTasks {
+            for dayOffset in 0...daysSinceMonday {
+                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: weekStart) else { continue }
+
+                if isTaskScheduled(task, on: date, calendar: calendar) {
+                    totalScheduled += 1
+                    if isTaskCompleted(task, on: date, calendar: calendar) {
+                        totalCompleted += 1
+                    }
+                }
+            }
+        }
+
+        guard totalScheduled >= 3 && totalCompleted == totalScheduled else { return }
+
+        // Dedup: only fire once per category per week
+        let weekNumber = calendar.component(.weekOfYear, from: today)
+        let year = calendar.component(.year, from: today)
+        let dedupKey = "share_week_\(category)_\(year)_w\(weekNumber)"
+        guard !UserDefaults.standard.bool(forKey: dedupKey) else { return }
+        UserDefaults.standard.set(true, forKey: dedupKey)
+
+        showSharePrompt(
+            category: category,
+            completed: totalCompleted,
+            total: totalScheduled,
+            subtitle: "this week"
+        )
+    }
+
+    /// Shows the share toast (non-intrusive banner, not a sheet)
+    private func showSharePrompt(category: String, completed: Int, total: Int, subtitle: String) {
         completedCategoryName = category
         completedCategoryIcon = Color.categoryIcon(for: category, customCategories: customCategories)
         completedCategoryColorHex = categoryColorHex(for: category)
-        completedCategoryCount = categoryTasks.count
+        completedCategoryCount = completed
+        completedCategoryTotal = total
         completedCategoryStreak = categoryStreak(for: category)
+        completedCategorySubtitle = subtitle
 
         // Delay so celebration overlay plays first
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-            showCategoryShare = true
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                showShareToast = true
+            }
+            // Auto-dismiss after 5 seconds if user doesn't interact
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                withAnimation { showShareToast = false }
+            }
         }
     }
 
-    /// Returns hex color string for a category
+    // MARK: - Category Helpers
+
+    private var todayDateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+
+    private func isTaskScheduled(_ task: TodoTask, on date: Date, calendar: Calendar) -> Bool {
+        if let startDate = task.startDate {
+            if calendar.startOfDay(for: startDate) > calendar.startOfDay(for: date) { return false }
+        }
+        switch task.recurrenceType {
+        case .none: return false
+        case .daily: return true
+        case .weekly:
+            let weekday = calendar.component(.weekday, from: date)
+            return task.selectedWeekdays.isEmpty || task.selectedWeekdays.contains(weekday)
+        case .monthly:
+            let day = calendar.component(.day, from: date)
+            return task.selectedMonthDays.isEmpty || task.selectedMonthDays.contains(day)
+        }
+    }
+
+    private func isTaskCompleted(_ task: TodoTask, on date: Date, calendar: Calendar) -> Bool {
+        guard let completions = task.completions else { return false }
+        let targetDay = calendar.startOfDay(for: date)
+        return completions.contains { calendar.startOfDay(for: $0.completedAt) == targetDay }
+    }
+
     private func categoryColorHex(for category: String) -> String {
         switch category.lowercased() {
         case "work": return "4A90E2"
@@ -323,7 +459,6 @@ struct TaskListView: View {
         }
     }
 
-    /// Calculates category-specific streak (consecutive days with at least one completion in category)
     private func categoryStreak(for category: String) -> Int {
         let calendar = Calendar.current
         let categoryCompletions = allCompletions.filter { $0.task?.category == category }
