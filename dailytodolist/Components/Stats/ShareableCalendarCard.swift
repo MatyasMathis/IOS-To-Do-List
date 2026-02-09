@@ -3,7 +3,7 @@
 //  Reps
 //
 //  Purpose: Branded shareable card showing a category's monthly completion calendar
-//  Design: Matches Whoop-inspired app theme — dark, athletic, SF Pro
+//  Design: Clean, minimal dark card optimized for social media sharing
 //
 
 import SwiftUI
@@ -83,91 +83,76 @@ struct ShareableCalendarCard: View {
 
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [surfaceDark, bgBlack],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            // Background — solid dark, no distracting gradients
+            bgBlack
 
             VStack(spacing: 0) {
                 Spacer()
-                    .frame(height: 160)
+                    .frame(height: 200)
 
                 // Category label
-                HStack(spacing: 14) {
+                HStack(spacing: 16) {
                     Image(systemName: categoryIcon)
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 32, weight: .semibold))
                     Text(categoryName.uppercased())
-                        .font(.system(size: 28, weight: .bold))
-                        .tracking(3)
+                        .font(.system(size: 32, weight: .bold))
+                        .tracking(4)
                 }
                 .foregroundStyle(categoryColor)
-                .padding(.bottom, 48)
+                .padding(.bottom, 64)
 
-                // Month title
+                // Month title — large and prominent
                 Text(monthTitle)
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.system(size: 44, weight: .bold))
                     .foregroundStyle(.white)
-                    .tracking(2)
-                    .padding(.bottom, 12)
+                    .tracking(3)
+                    .padding(.bottom, 16)
 
-                // Completion count subtitle
-                Text("\(completionCount) completion\(completionCount == 1 ? "" : "s")")
+                // Completion count
+                Text("\(completionCount) DAY\(completionCount == 1 ? "" : "S") COMPLETED")
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(textSecondary)
-                    .tracking(1)
-                    .padding(.bottom, 56)
+                    .tracking(2)
+                    .padding(.bottom, 72)
 
-                // Calendar grid
+                // Calendar grid — clean, spacious
                 calendarGrid
-                    .padding(.horizontal, 80)
-                    .padding(.bottom, 56)
+                    .padding(.horizontal, 72)
+
+                Spacer()
 
                 // Streak pill
                 if streak > 1 {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 26, weight: .semibold))
+                            .font(.system(size: 28, weight: .semibold))
                             .foregroundStyle(Color(hex: "FF4444"))
 
-                        Text("\(streak) day streak")
+                        Text("\(streak) DAY STREAK")
                             .font(.system(size: 26, weight: .bold))
                             .foregroundStyle(.white)
+                            .tracking(1.5)
                     }
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
+                    .padding(.horizontal, 36)
+                    .padding(.vertical, 18)
                     .background(
                         Capsule()
-                            .fill(.white.opacity(0.08))
+                            .fill(.white.opacity(0.06))
                             .overlay(
                                 Capsule()
-                                    .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                                    .strokeBorder(.white.opacity(0.08), lineWidth: 1)
                             )
                     )
-                    .padding(.bottom, 56)
+                    .padding(.bottom, 48)
                 }
-
-                Spacer()
 
                 // Branding — matches splash screen style
                 Text("REPS")
                     .font(.system(size: 36, weight: .black, design: .rounded))
-                    .foregroundStyle(textSecondary.opacity(0.6))
+                    .foregroundStyle(textSecondary.opacity(0.5))
                     .tracking(4)
                     .padding(.bottom, 100)
             }
-
-            // Subtle border
-            RoundedRectangle(cornerRadius: 0)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [surfaceMid.opacity(0.4), .clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 2
-                )
         }
         .frame(width: cardWidth, height: cardHeight)
     }
@@ -175,69 +160,61 @@ struct ShareableCalendarCard: View {
     // MARK: - Calendar Grid
 
     private var calendarGrid: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 24) {
             // Days of week header
             HStack(spacing: 0) {
                 ForEach(Array(daysOfWeek.enumerated()), id: \.offset) { _, day in
                     Text(day)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(textSecondary)
                         .frame(maxWidth: .infinity)
                 }
             }
+            .padding(.bottom, 8)
 
-            // Day cells grid
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+            // Day cells — generous spacing for clean look
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 7)
 
-            LazyVGrid(columns: columns, spacing: 12) {
+            LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(Array(daysInMonth.enumerated()), id: \.offset) { _, day in
                     shareCalDayCell(day: day)
                 }
             }
         }
-        .padding(32)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(surfaceDark.opacity(0.8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(surfaceMid.opacity(0.3), lineWidth: 1)
-                )
-        )
     }
 
     @ViewBuilder
     private func shareCalDayCell(day: ShareCalDay) -> some View {
         ZStack {
             if day.dayNumber > 0 {
-                Circle()
+                RoundedRectangle(cornerRadius: 22)
                     .fill(dayCellBackground(day))
-                    .frame(width: 80, height: 80)
+                    .frame(width: 100, height: 100)
 
                 if day.isToday {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 22)
                         .strokeBorder(Color.white, lineWidth: 3)
-                        .frame(width: 80, height: 80)
+                        .frame(width: 100, height: 100)
                 }
 
                 Text("\(day.dayNumber)")
-                    .font(.system(size: 28, weight: day.isToday ? .bold : .medium))
+                    .font(.system(size: 32, weight: day.isToday ? .bold : .semibold))
                     .foregroundStyle(dayCellTextColor(day))
             }
         }
-        .frame(height: 84)
+        .frame(height: 104)
     }
 
     private func dayCellBackground(_ day: ShareCalDay) -> Color {
         if day.isCompleted { return categoryColor }
         if day.isFuture { return .clear }
-        return surfaceMid
+        return surfaceDark
     }
 
     private func dayCellTextColor(_ day: ShareCalDay) -> Color {
-        if day.isFuture { return surfaceMid }
+        if day.isFuture { return surfaceDark }
         if day.isCompleted { return bgBlack }
-        return .white
+        return .white.opacity(0.7)
     }
 }
 

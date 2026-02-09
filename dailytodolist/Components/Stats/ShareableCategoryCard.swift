@@ -124,11 +124,11 @@ struct ShareableCategoryCard: View {
                 Spacer()
                     .frame(height: 40)
 
-                // Branding
-                Text("reps.")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(textSecondary.opacity(0.6))
-                    .tracking(1)
+                // Branding — matches splash screen style
+                Text("REPS")
+                    .font(.system(size: 36, weight: .black, design: .rounded))
+                    .foregroundStyle(textSecondary.opacity(0.5))
+                    .tracking(4)
                     .padding(.bottom, 100)
             }
 

@@ -40,6 +40,7 @@ struct StatsView: View {
 
     @State private var selectedCategory: String? = nil // nil means "All"
     @State private var displayedMonth: Date = Date()
+    @State private var showCalendarShare = false
 
     // MARK: - Computed Properties
 
@@ -239,12 +240,35 @@ struct StatsView: View {
                                 CategoryTasksList(tasks: filteredTasks)
                             }
 
-                            // Completion calendar
-                            CategoryCompletionCalendar(
-                                completionDates: filteredCompletionDateSet,
-                                displayedMonth: $displayedMonth,
-                                accentColor: categoryColor
-                            )
+                            // Completion calendar with share option
+                            VStack(spacing: Spacing.sm) {
+                                CategoryCompletionCalendar(
+                                    completionDates: filteredCompletionDateSet,
+                                    displayedMonth: $displayedMonth,
+                                    accentColor: categoryColor
+                                )
+
+                                // Share calendar button (pro feature) — only for specific categories
+                                if selectedCategory != nil {
+                                    Button {
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
+                                        showCalendarShare = true
+                                    } label: {
+                                        HStack(spacing: Spacing.sm) {
+                                            Image(systemName: "square.and.arrow.up")
+                                                .font(.system(size: 14, weight: .bold))
+                                            Text("Share Calendar")
+                                                .font(.system(size: Typography.bodySize, weight: .bold))
+                                        }
+                                        .foregroundStyle(Color.brandBlack)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: ComponentSize.buttonHeight)
+                                        .background(categoryColor)
+                                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -272,6 +296,42 @@ struct StatsView: View {
             }
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .sheet(isPresented: $showCalendarShare) {
+                if let category = selectedCategory {
+                    CalendarShareSheet(
+                        categoryName: category,
+                        categoryIcon: Color.categoryIcon(for: category, customCategories: customCategories),
+                        categoryColorHex: colorHex(for: category),
+                        completionDates: filteredCompletionDateSet,
+                        displayedMonth: displayedMonth,
+                        streak: currentStreak,
+                        completionCount: completionCountForMonth
+                    )
+                }
+            }
+        }
+    }
+
+    /// Completion count for the displayed month
+    private var completionCountForMonth: Int {
+        let cal = Calendar.current
+        let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: displayedMonth))!
+        let nextMonth = cal.date(byAdding: .month, value: 1, to: monthStart)!
+        return filteredCompletionDateSet.filter { $0 >= monthStart && $0 < nextMonth }.count
+    }
+
+    /// Returns hex color string for a category
+    private func colorHex(for category: String) -> String {
+        switch category.lowercased() {
+        case "work": return "4A90E2"
+        case "personal": return "F5A623"
+        case "health": return "2DD881"
+        case "shopping": return "BD10E0"
+        default:
+            if let custom = customCategories.first(where: { $0.name == category }) {
+                return custom.colorHex
+            }
+            return "808080"
         }
     }
 
