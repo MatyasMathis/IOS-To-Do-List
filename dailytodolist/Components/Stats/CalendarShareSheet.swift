@@ -2,16 +2,17 @@
 //  CalendarShareSheet.swift
 //  Reps
 //
-//  Purpose: Share sheet for category calendar cards
-//  Design: Minimal preview with share button, matching existing share sheet pattern
+//  Purpose: Share sheet for category calendar cards with photo picker
+//  Design: Strava-inspired — photo background option, matching existing share sheet pattern
 //
 
 import SwiftUI
+import PhotosUI
 
-/// Sheet for previewing and sharing a category's monthly completion calendar.
+/// Sheet for customizing and sharing a category's monthly completion calendar.
 ///
-/// Shows a scaled-down preview of the shareable card and a share button
-/// that renders the full-size card and presents the system share sheet.
+/// User can pick a background photo (camera or gallery), preview
+/// the card live, and share via the system share sheet.
 struct CalendarShareSheet: View {
 
     // MARK: - Environment
@@ -28,6 +29,12 @@ struct CalendarShareSheet: View {
     let streak: Int
     let completionCount: Int
 
+    // MARK: - State
+
+    @State private var selectedPhoto: UIImage?
+    @State private var photosPickerItem: PhotosPickerItem?
+    @State private var showCamera = false
+
     // MARK: - Computed
 
     private var categoryColor: Color { Color(hex: categoryColorHex) }
@@ -40,7 +47,8 @@ struct CalendarShareSheet: View {
             completionDates: completionDates,
             displayedMonth: displayedMonth,
             streak: streak,
-            completionCount: completionCount
+            completionCount: completionCount,
+            backgroundImage: selectedPhoto
         )
     }
 
@@ -57,6 +65,10 @@ struct CalendarShareSheet: View {
                         .padding(.top, Spacing.lg)
 
                     Spacer()
+
+                    // Photo source buttons
+                    photoButtons
+                        .padding(.bottom, Spacing.xl)
 
                     // Share button
                     shareButton
@@ -82,6 +94,19 @@ struct CalendarShareSheet: View {
             }
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .onChange(of: photosPickerItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        selectedPhoto = image
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraView(image: $selectedPhoto)
+                    .ignoresSafeArea()
+            }
         }
     }
 
@@ -94,6 +119,62 @@ struct CalendarShareSheet: View {
             .frame(width: 1080 * 0.22, height: 1920 * 0.22)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
             .shadowLevel1()
+    }
+
+    private var photoButtons: some View {
+        HStack(spacing: Spacing.md) {
+            // Camera
+            Button { showCamera = true } label: {
+                VStack(spacing: Spacing.xs) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                    Text("CAMERA")
+                        .font(.system(size: Typography.captionSize, weight: .bold))
+                        .tracking(0.5)
+                }
+                .foregroundStyle(Color.pureWhite)
+                .frame(width: 80, height: 64)
+                .background(Color.darkGray2)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+            }
+
+            // Gallery
+            PhotosPicker(selection: $photosPickerItem, matching: .images) {
+                VStack(spacing: Spacing.xs) {
+                    Image(systemName: "photo.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                    Text("GALLERY")
+                        .font(.system(size: Typography.captionSize, weight: .bold))
+                        .tracking(0.5)
+                }
+                .foregroundStyle(Color.pureWhite)
+                .frame(width: 80, height: 64)
+                .background(Color.darkGray2)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+            }
+
+            // Remove photo
+            if selectedPhoto != nil {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedPhoto = nil
+                        photosPickerItem = nil
+                    }
+                } label: {
+                    VStack(spacing: Spacing.xs) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                        Text("REMOVE")
+                            .font(.system(size: Typography.captionSize, weight: .bold))
+                            .tracking(0.5)
+                    }
+                    .foregroundStyle(Color.strainRed)
+                    .frame(width: 80, height: 64)
+                    .background(Color.darkGray2)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                }
+            }
+        }
     }
 
     private var shareButton: some View {
