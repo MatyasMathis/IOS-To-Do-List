@@ -118,6 +118,13 @@ class TaskService {
         selectedMonthDays: [Int],
         startDate: Date? = nil
     ) {
+        // If a non-recurring task that was previously completed is being
+        // updated to start today (no future startDate), clear its completion
+        // records so it reappears in today's list.
+        if recurrenceType == .none && startDate == nil && hasEverBeenCompleted(task) {
+            clearCompletions(for: task)
+        }
+
         task.title = title
         task.category = category
         task.recurrenceType = recurrenceType
@@ -258,6 +265,20 @@ class TaskService {
             task.completions = []
         }
         task.completions?.append(completion)
+    }
+
+    /// Removes all completion records for a task
+    ///
+    /// Used when reactivating a previously completed one-time task so that
+    /// it passes the `hasEverBeenCompleted` check and reappears in today's list.
+    ///
+    /// - Parameter task: The task whose completions should be cleared
+    private func clearCompletions(for task: TodoTask) {
+        guard let completions = task.completions else { return }
+        for completion in completions {
+            modelContext.delete(completion)
+        }
+        task.completions = []
     }
 
     /// Removes today's completion record for a task (uncomplete)
