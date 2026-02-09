@@ -174,7 +174,12 @@ struct TaskListView: View {
             }
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .sheet(isPresented: $isShowingAddSheet) {
+            .sheet(isPresented: $isShowingAddSheet, onDismiss: {
+                // Refresh tasks after adding or editing via autocomplete
+                withAnimation {
+                    updateTodayTasks()
+                }
+            }) {
                 AddTaskSheet()
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
