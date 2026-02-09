@@ -3,16 +3,19 @@
 //  Reps
 //
 //  Purpose: Share sheet for category completion cards
-//  Design: Whoop-inspired dark theme with photo picker
+//  Design: Strava-style — large card preview fills the screen,
+//          clean bottom action bar for photo pick + share
 //
 
 import SwiftUI
 import PhotosUI
 
-/// Sheet for customizing and sharing a category completion card.
+/// Strava-inspired share editor.
 ///
-/// User can pick a background photo (camera or gallery), preview
-/// the card live, and share via the system share sheet.
+/// Layout:
+/// - X button top-left
+/// - Card preview fills available space
+/// - Bottom bar: camera | gallery | (remove) | share button
 struct CategoryShareSheet: View {
 
     // MARK: - Environment
@@ -55,102 +58,102 @@ struct CategoryShareSheet: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.brandBlack.ignoresSafeArea()
+        ZStack {
+            Color.brandBlack.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Card preview
-                    cardPreview
-                        .padding(.top, Spacing.lg)
+            VStack(spacing: 0) {
+                // Top bar: dismiss + title
+                topBar
+                    .padding(.top, Spacing.sm)
 
-                    Spacer()
+                // Card preview — fills available space
+                GeometryReader { geo in
+                    let previewWidth = geo.size.width - (Spacing.xl * 2)
+                    let previewHeight = previewWidth * (1920.0 / 1080.0)
+                    let scale = previewWidth / 1080.0
 
-                    // Photo source buttons
-                    photoButtons
-                        .padding(.bottom, Spacing.xl)
-
-                    // Share button
-                    shareButton
-                        .padding(.horizontal, Spacing.xl)
-                        .padding(.bottom, Spacing.xxl)
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: Typography.bodySize, weight: .semibold))
-                            .foregroundStyle(Color.mediumGray)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        cardView
+                            .frame(width: 1080, height: 1920)
+                            .scaleEffect(scale, anchor: .topLeading)
+                            .frame(width: previewWidth, height: previewHeight)
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
+                            .shadowLevel1()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.lg)
                     }
                 }
+                .padding(.horizontal, Spacing.xl)
 
-                ToolbarItem(placement: .principal) {
-                    Text("Share your win")
-                        .font(.system(size: Typography.h4Size, weight: .bold))
-                        .foregroundStyle(Color.pureWhite)
+                // Bottom action bar
+                bottomBar
+            }
+        }
+        .onChange(of: photosPickerItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    selectedPhoto = image
                 }
             }
-            .toolbarBackground(Color.brandBlack, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .onChange(of: photosPickerItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        selectedPhoto = image
-                    }
-                }
-            }
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraView(image: $selectedPhoto)
-                    .ignoresSafeArea()
-            }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraView(image: $selectedPhoto)
+                .ignoresSafeArea()
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Top Bar
 
-    private var cardPreview: some View {
-        cardView
-            .frame(width: 1080, height: 1920)
-            .scaleEffect(0.22)
-            .frame(width: 1080 * 0.22, height: 1920 * 0.22)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
-            .shadowLevel1()
+    private var topBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color.mediumGray)
+                    .frame(width: 32, height: 32)
+                    .background(Color.darkGray2)
+                    .clipShape(Circle())
+            }
+
+            Spacer()
+
+            Text("Share your win")
+                .font(.system(size: Typography.h4Size, weight: .bold))
+                .foregroundStyle(Color.pureWhite)
+
+            Spacer()
+
+            // Invisible balance element
+            Color.clear.frame(width: 32, height: 32)
+        }
+        .padding(.horizontal, Spacing.xl)
+        .padding(.bottom, Spacing.sm)
     }
 
-    private var photoButtons: some View {
+    // MARK: - Bottom Action Bar
+
+    private var bottomBar: some View {
         HStack(spacing: Spacing.md) {
             // Camera
             Button { showCamera = true } label: {
-                VStack(spacing: Spacing.xs) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("CAMERA")
-                        .font(.system(size: Typography.captionSize, weight: .bold))
-                        .tracking(0.5)
-                }
-                .foregroundStyle(Color.pureWhite)
-                .frame(width: 80, height: 64)
-                .background(Color.darkGray2)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.pureWhite)
+                    .frame(width: 48, height: 48)
+                    .background(Color.darkGray2)
+                    .clipShape(Circle())
             }
 
             // Gallery
             PhotosPicker(selection: $photosPickerItem, matching: .images) {
-                VStack(spacing: Spacing.xs) {
-                    Image(systemName: "photo.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("GALLERY")
-                        .font(.system(size: Typography.captionSize, weight: .bold))
-                        .tracking(0.5)
-                }
-                .foregroundStyle(Color.pureWhite)
-                .frame(width: 80, height: 64)
-                .background(Color.darkGray2)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.pureWhite)
+                    .frame(width: 48, height: 48)
+                    .background(Color.darkGray2)
+                    .clipShape(Circle())
             }
 
             // Remove photo
@@ -161,41 +164,49 @@ struct CategoryShareSheet: View {
                         photosPickerItem = nil
                     }
                 } label: {
-                    VStack(spacing: Spacing.xs) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                        Text("REMOVE")
-                            .font(.system(size: Typography.captionSize, weight: .bold))
-                            .tracking(0.5)
-                    }
-                    .foregroundStyle(Color.strainRed)
-                    .frame(width: 80, height: 64)
-                    .background(Color.darkGray2)
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.strainRed)
+                        .frame(width: 48, height: 48)
+                        .background(Color.darkGray2)
+                        .clipShape(Circle())
                 }
             }
-        }
-    }
 
-    private var shareButton: some View {
-        Button {
-            ShareService.renderAndShare(
-                view: cardView,
-                size: CGSize(width: 1080, height: 1920)
-            )
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 14, weight: .bold))
-                Text("Share")
-                    .font(.system(size: Typography.bodySize, weight: .bold))
+            Spacer()
+
+            // Share button
+            Button {
+                ShareService.renderAndShare(
+                    view: cardView,
+                    size: CGSize(width: 1080, height: 1920)
+                )
+            } label: {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("Share")
+                        .font(.system(size: Typography.bodySize, weight: .bold))
+                }
+                .foregroundStyle(Color.brandBlack)
+                .padding(.horizontal, Spacing.xxl)
+                .frame(height: 48)
+                .background(categoryColor)
+                .clipShape(Capsule())
             }
-            .foregroundStyle(Color.brandBlack)
-            .frame(maxWidth: .infinity)
-            .frame(height: ComponentSize.buttonHeight)
-            .background(categoryColor)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
         }
+        .padding(.horizontal, Spacing.xl)
+        .padding(.vertical, Spacing.md)
+        .background(
+            Color.darkGray1
+                .overlay(
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundStyle(Color.darkGray2),
+                    alignment: .top
+                )
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 }
 
