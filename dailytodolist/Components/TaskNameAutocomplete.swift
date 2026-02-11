@@ -194,9 +194,9 @@ struct TaskSuggestionRow: View {
     /// Title with the matching portion highlighted
     private var highlightedTitle: Text {
         let title = task.title
-        let search = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let search = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let range = title.lowercased().range(of: search) {
+        if let range = title.range(of: search, options: .caseInsensitive) {
             let beforeMatch = String(title[..<range.lowerBound])
             let match = String(title[range])
             let afterMatch = String(title[range.upperBound...])
