@@ -23,11 +23,13 @@ struct HistoryView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(StoreService.self) private var storeService
 
     // MARK: - State
 
     @State private var refreshID = UUID()
     @State private var showStats = false
+    @State private var showPaywall = false
     @State private var showCalendarSheet = false
     @State private var calendarMonth = Date()
     @State private var scrollProxy: ScrollViewProxy?
@@ -102,11 +104,18 @@ struct HistoryView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showStats = true
+                        if storeService.isPremium {
+                            showStats = true
+                        } else {
+                            showPaywall = true
+                        }
                     } label: {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "chart.bar.fill")
                             Text("Stats")
+                            if !storeService.isPremium {
+                                ProBadge()
+                            }
                         }
                         .font(.system(size: Typography.bodySize, weight: .medium))
                         .foregroundStyle(Color.recoveryGreen)
@@ -124,6 +133,9 @@ struct HistoryView: View {
             .id(refreshID)
             .sheet(isPresented: $showStats) {
                 StatsView()
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
             }
             .sheet(isPresented: $showCalendarSheet) {
                 calendarSheet

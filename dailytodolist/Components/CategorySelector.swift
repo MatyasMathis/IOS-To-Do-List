@@ -19,8 +19,10 @@ struct CategorySelector: View {
     private var customCategories: [CustomCategory]
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(StoreService.self) private var storeService
 
     @State private var showAddCategory = false
+    @State private var showPaywall = false
     @State private var editingCategory: CustomCategory?
     @State private var categoryToDelete: CustomCategory?
     @State private var showDeleteConfirmation = false
@@ -82,7 +84,11 @@ struct CategorySelector: View {
                     }
                     .contextMenu {
                         Button {
-                            editingCategory = custom
+                            if storeService.isPremium {
+                                editingCategory = custom
+                            } else {
+                                showPaywall = true
+                            }
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }
@@ -98,9 +104,16 @@ struct CategorySelector: View {
 
                 // Add custom category button with PRO badge
                 AddCategoryButton {
-                    showAddCategory = true
+                    if storeService.isPremium {
+                        showAddCategory = true
+                    } else {
+                        showPaywall = true
+                    }
                 }
             }
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
         }
         .sheet(isPresented: $showAddCategory) {
             AddCategorySheet()

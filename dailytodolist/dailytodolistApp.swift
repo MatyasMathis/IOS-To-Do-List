@@ -13,6 +13,7 @@
 
 import SwiftUI
 import SwiftData
+import StoreKit
 
 /// Notification posted when the app should navigate to the Tasks tab
 extension Notification.Name {
@@ -26,6 +27,7 @@ extension Notification.Name {
 @main
 struct RepsApp: App {
     @State private var showSplash = true
+    @State private var storeService = StoreService()
 
     var body: some Scene {
         WindowGroup {
@@ -41,6 +43,7 @@ struct RepsApp: App {
                         .zIndex(1)
                 }
             }
+            .environment(storeService)
             .onAppear {
                 // Dismiss splash after delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {

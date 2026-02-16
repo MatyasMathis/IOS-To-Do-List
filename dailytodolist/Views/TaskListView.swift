@@ -23,6 +23,7 @@ struct TaskListView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(StoreService.self) private var storeService
 
     // MARK: - State
 
@@ -38,6 +39,7 @@ struct TaskListView: View {
 
     // Year in Pixels sheet
     @State private var showYearInPixels = false
+    @State private var showPaywall = false
 
     // Category share sheet
     @State private var showCategoryShare = false
@@ -164,7 +166,11 @@ struct TaskListView: View {
                         // Streak badge — tappable to open Year in Pixels
                         if currentStreak > 0 {
                             Button {
-                                showYearInPixels = true
+                                if storeService.isPremium {
+                                    showYearInPixels = true
+                                } else {
+                                    showPaywall = true
+                                }
                             } label: {
                                 StreakBadge(count: currentStreak)
                             }
@@ -201,6 +207,9 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showYearInPixels) {
                 YearInPixelsView()
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
             }
             .sheet(isPresented: $showCategoryShare) {
                 CategoryShareSheet(
