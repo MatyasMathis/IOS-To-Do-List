@@ -291,7 +291,7 @@ struct AddTaskSheet: View {
                 DatePicker(
                     "Start Date",
                     selection: $startDate,
-                    in: Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date()))!...,
+                    in: (Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) ?? Date())...,
                     displayedComponents: .date
                 )
                 .datePickerStyle(.graphical)
@@ -308,7 +308,9 @@ struct AddTaskSheet: View {
     /// Formatted start date for display
     private var formattedStartDate: String {
         let calendar = Calendar.current
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) else {
+            return "Tomorrow"
+        }
         let selectedDay = calendar.startOfDay(for: startDate)
 
         if selectedDay == tomorrow {

@@ -339,7 +339,7 @@ class TaskService {
     func fetchCompletions(for date: Date) -> [TaskCompletion] {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else { return [] }
 
         let descriptor = FetchDescriptor<TaskCompletion>(
             predicate: #Predicate { completion in
