@@ -111,36 +111,39 @@ struct StatsView: View {
 
         switch task.recurrenceType {
         case .daily:
-            // +1 because creation day counts
             return max((calendar.dateComponents([.day], from: startDate, to: today).day ?? 0) + 1, 1)
 
         case .weekly:
-            let selectedWeekdays = task.selectedWeekdays
-            guard !selectedWeekdays.isEmpty else { return 1 }
-            var count = 0
-            var date = startDate
-            while date <= today {
-                let weekday = calendar.component(.weekday, from: date)
-                if selectedWeekdays.contains(weekday) {
-                    count += 1
-                }
-                guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
-                date = next
+            let weekdaySet = Set(task.selectedWeekdays)
+            guard !weekdaySet.isEmpty else { return 1 }
+            let totalDays = max((calendar.dateComponents([.day], from: startDate, to: today).day ?? 0) + 1, 1)
+            let fullWeeks = totalDays / 7
+            let remainingDays = totalDays % 7
+            var count = fullWeeks * weekdaySet.count
+            let startWeekday = calendar.component(.weekday, from: startDate)
+            for i in 0..<remainingDays {
+                let wd = ((startWeekday - 1 + i) % 7) + 1
+                if weekdaySet.contains(wd) { count += 1 }
             }
             return max(count, 1)
 
         case .monthly:
-            let selectedDays = task.selectedMonthDays
-            guard !selectedDays.isEmpty else { return 1 }
+            let daySet = Set(task.selectedMonthDays)
+            guard !daySet.isEmpty else { return 1 }
             var count = 0
-            var date = startDate
-            while date <= today {
-                let dayOfMonth = calendar.component(.day, from: date)
-                if selectedDays.contains(dayOfMonth) {
-                    count += 1
+            var current = calendar.date(from: calendar.dateComponents([.year, .month], from: startDate)) ?? startDate
+            let todayMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: today)) ?? today
+            while current <= todayMonth {
+                let daysInMonth = calendar.range(of: .day, in: .month, for: current)?.count ?? 30
+                for day in daySet {
+                    guard day <= daysInMonth else { continue }
+                    if let date = calendar.date(bySetting: .day, value: day, of: current),
+                       calendar.startOfDay(for: date) >= startDate && calendar.startOfDay(for: date) <= today {
+                        count += 1
+                    }
                 }
-                guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
-                date = next
+                guard let next = calendar.date(byAdding: .month, value: 1, to: current) else { break }
+                current = next
             }
             return max(count, 1)
 
@@ -315,8 +318,8 @@ struct StatsView: View {
     /// Completion count for the displayed month
     private var completionCountForMonth: Int {
         let cal = Calendar.current
-        let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: displayedMonth))!
-        let nextMonth = cal.date(byAdding: .month, value: 1, to: monthStart)!
+        guard let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: displayedMonth)),
+              let nextMonth = cal.date(byAdding: .month, value: 1, to: monthStart) else { return 0 }
         return filteredCompletionDateSet.filter { $0 >= monthStart && $0 < nextMonth }.count
     }
 

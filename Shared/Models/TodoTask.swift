@@ -242,7 +242,7 @@ final class TodoTask {
             }
             let dayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
             let sortedDays = selectedWeekdays.sorted()
-            return sortedDays.map { dayNames[$0] }.joined(separator: ", ").uppercased()
+            return sortedDays.map { $0 >= 0 && $0 < dayNames.count ? dayNames[$0] : "?" }.joined(separator: ", ").uppercased()
         case .monthly:
             if selectedMonthDays.isEmpty {
                 return "MONTHLY"

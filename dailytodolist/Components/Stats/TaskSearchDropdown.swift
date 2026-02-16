@@ -22,10 +22,12 @@ struct TaskSearchDropdown: View {
 
     private var filteredTasks: [TodoTask] {
         if searchText.isEmpty {
+            let latestDates = Dictionary(uniqueKeysWithValues: tasks.map { task in
+                (task.id, task.completions?.max(by: { $0.completedAt < $1.completedAt })?.completedAt ?? task.createdAt)
+            })
             return tasks.sorted { task1, task2 in
-                // Sort by most recent completion first
-                let date1 = task1.completions?.max(by: { $0.completedAt < $1.completedAt })?.completedAt ?? task1.createdAt
-                let date2 = task2.completions?.max(by: { $0.completedAt < $1.completedAt })?.completedAt ?? task2.createdAt
+                let date1 = latestDates[task1.id] ?? task1.createdAt
+                let date2 = latestDates[task2.id] ?? task2.createdAt
                 return date1 > date2
             }
         }
