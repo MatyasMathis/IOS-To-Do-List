@@ -16,6 +16,11 @@ struct CategoryTasksList: View {
 
     let tasks: [TodoTask]
 
+    // MARK: - State
+
+    /// Task selected via long-press to show its completion calendar
+    @State private var selectedTask: TodoTask?
+
     // MARK: - Computed Properties
 
     /// Tasks sorted by completion rate (best first), then by title
@@ -47,9 +52,16 @@ struct CategoryTasksList: View {
                     ForEach(Array(sortedTasks.enumerated()), id: \.element.id) { index, task in
                         CategoryTaskRow(
                             task: task,
+                            completionCount: task.completions?.count ?? 0,
                             streak: taskStreak(for: task),
                             rate: completionRate(for: task)
                         )
+                        .contentShape(Rectangle())
+                        .onLongPressGesture {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                            selectedTask = task
+                        }
 
                         if index < sortedTasks.count - 1 {
                             Divider()
@@ -59,6 +71,11 @@ struct CategoryTasksList: View {
                 }
                 .background(Color.darkGray1)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
+                .sheet(item: $selectedTask) { task in
+                    TaskCalendarSheet(task: task)
+                        .presentationDetents([.medium, .large])
+                        .presentationDragIndicator(.visible)
+                }
             }
         }
     }
@@ -175,6 +192,7 @@ struct CategoryTasksList: View {
 struct CategoryTaskRow: View {
 
     let task: TodoTask
+    let completionCount: Int
     let streak: Int
     let rate: Double
 
@@ -186,17 +204,29 @@ struct CategoryTaskRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.md) {
-            // Task title
+            // Task title and info
             VStack(alignment: .leading, spacing: 2) {
                 Text(task.title)
                     .font(.system(size: Typography.bodySize, weight: .medium))
                     .foregroundStyle(Color.pureWhite)
                     .lineLimit(1)
 
-                if task.recurrenceType != .none {
-                    Text(task.recurrenceDisplayString)
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Color.mediumGray)
+                HStack(spacing: Spacing.sm) {
+                    if task.recurrenceType != .none {
+                        Text(task.recurrenceDisplayString)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                    }
+
+                    // Completion count
+                    HStack(spacing: 2) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                        Text("\(completionCount)")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color.mediumGray)
+                    }
                 }
             }
 
@@ -246,6 +276,72 @@ struct CategoryTaskRow: View {
     }
 }
 
+// MARK: - Task Calendar Sheet
+
+/// Sheet showing a completion calendar for a specific task
+struct TaskCalendarSheet: View {
+
+    let task: TodoTask
+    @Environment(\.dismiss) private var dismiss
+    @State private var displayedMonth = Date()
+
+    private var completionCount: Int {
+        task.completions?.count ?? 0
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.brandBlack.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: Spacing.xl) {
+                        // Task info header
+                        VStack(spacing: Spacing.sm) {
+                            Text(task.title)
+                                .font(.system(size: Typography.h4Size, weight: .bold))
+                                .foregroundStyle(Color.pureWhite)
+
+                            if task.recurrenceType != .none {
+                                Text(task.recurrenceDisplayString)
+                                    .font(.system(size: Typography.captionSize, weight: .semibold))
+                                    .foregroundStyle(Color.mediumGray)
+                            }
+
+                            Text("\(completionCount) completion\(completionCount == 1 ? "" : "s")")
+                                .font(.system(size: Typography.bodySize, weight: .medium))
+                                .foregroundStyle(Color.recoveryGreen)
+                        }
+                        .padding(.top, Spacing.md)
+
+                        // Completion calendar
+                        CompletionCalendar(
+                            task: task,
+                            displayedMonth: $displayedMonth
+                        )
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.xxl)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.pureWhite)
+                    }
+                }
+            }
+            .toolbarBackground(Color.brandBlack, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview("Category Tasks List") {
@@ -279,6 +375,7 @@ struct CategoryTaskRow: View {
                 CategoryTasksList(tasks: [task1, task2, task3])
                     .padding(Spacing.lg)
             }
+            .modelContainer(container)
         }
     }
 
