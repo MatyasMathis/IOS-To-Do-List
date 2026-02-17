@@ -18,19 +18,57 @@ struct CategoryTasksList: View {
 
     // MARK: - State
 
-    /// Task selected via long-press to show its completion calendar
+    /// Task selected via context menu to show its completion calendar
     @State private var selectedTask: TodoTask?
 
     // MARK: - Computed Properties
 
-    /// Tasks sorted by completion rate (best first), then by title
-    private var sortedTasks: [TodoTask] {
-        let rates = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, completionRate(for: $0)) })
-        return tasks.sorted { task1, task2 in
-            let rate1 = rates[task1.id] ?? 0
-            let rate2 = rates[task2.id] ?? 0
-            if rate1 != rate2 { return rate1 > rate2 }
-            return task1.title < task2.title
+    /// Pre-computed task stats sorted by completion rate (best first), then by title.
+    /// Computes streak, rate, and count once per task — avoids duplicate calculations.
+    private var taskStats: [(task: TodoTask, completionCount: Int, streak: Int, rate: Double)] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        return tasks.map { task in
+            let completions = task.completions ?? []
+            let completionCount = completions.count
+            let completionDates = Set(completions.map { calendar.startOfDay(for: $0.completedAt) })
+
+            // Streak
+            var streak = 0
+            if !completionDates.isEmpty {
+                var checkDate = today
+                if !completionDates.contains(checkDate) {
+                    if let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate),
+                       completionDates.contains(yesterday) {
+                        checkDate = yesterday
+                    }
+                }
+                if completionDates.contains(checkDate) {
+                    while completionDates.contains(checkDate) {
+                        streak += 1
+                        guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                        checkDate = prev
+                    }
+                }
+            }
+
+            // Rate
+            var rate: Double = 0
+            if !completions.isEmpty {
+                if task.recurrenceType == .none {
+                    rate = 1.0
+                } else {
+                    let scheduledDays = Self.countScheduledDays(for: task, calendar: calendar, today: today)
+                    rate = min(Double(completionDates.count) / Double(scheduledDays), 1.0)
+                }
+            }
+
+            return (task: task, completionCount: completionCount, streak: streak, rate: rate)
+        }
+        .sorted { a, b in
+            if a.rate != b.rate { return a.rate > b.rate }
+            return a.task.title < b.task.title
         }
     }
 
@@ -45,25 +83,28 @@ struct CategoryTasksList: View {
                 .tracking(1.0)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if sortedTasks.isEmpty {
+            let stats = taskStats
+
+            if stats.isEmpty {
                 emptyView
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(sortedTasks.enumerated()), id: \.element.id) { index, task in
+                    ForEach(Array(stats.enumerated()), id: \.element.task.id) { index, entry in
                         CategoryTaskRow(
-                            task: task,
-                            completionCount: task.completions?.count ?? 0,
-                            streak: taskStreak(for: task),
-                            rate: completionRate(for: task)
+                            task: entry.task,
+                            completionCount: entry.completionCount,
+                            streak: entry.streak,
+                            rate: entry.rate
                         )
-                        .contentShape(Rectangle())
-                        .onLongPressGesture {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.impactOccurred()
-                            selectedTask = task
+                        .contextMenu {
+                            Button {
+                                selectedTask = entry.task
+                            } label: {
+                                Label("View Calendar", systemImage: "calendar")
+                            }
                         }
 
-                        if index < sortedTasks.count - 1 {
+                        if index < stats.count - 1 {
                             Divider()
                                 .background(Color.darkGray2)
                         }
@@ -71,12 +112,12 @@ struct CategoryTasksList: View {
                 }
                 .background(Color.darkGray1)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large))
-                .sheet(item: $selectedTask) { task in
-                    TaskCalendarSheet(task: task)
-                        .presentationDetents([.medium, .large])
-                        .presentationDragIndicator(.visible)
-                }
             }
+        }
+        .sheet(item: $selectedTask) { task in
+            TaskCalendarSheet(task: task)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -97,51 +138,9 @@ struct CategoryTasksList: View {
 
     // MARK: - Helpers
 
-    /// Calculates consecutive days of completion for a specific task
-    private func taskStreak(for task: TodoTask) -> Int {
-        guard let completions = task.completions, !completions.isEmpty else { return 0 }
-
-        let calendar = Calendar.current
-        let completionDates = Set(completions.map { calendar.startOfDay(for: $0.completedAt) })
-
-        var streak = 0
-        var checkDate = calendar.startOfDay(for: Date())
-
-        // If no completion today, check yesterday
-        if !completionDates.contains(checkDate) {
-            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
-            if !completionDates.contains(yesterday) { return 0 }
-            checkDate = yesterday
-        }
-
-        while completionDates.contains(checkDate) {
-            streak += 1
-            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
-            checkDate = prev
-        }
-
-        return streak
-    }
-
-    /// Calculates completion rate for recurring tasks, or total for one-time
-    /// Accounts for recurrence schedule: weekly tasks only count scheduled days
-    private func completionRate(for task: TodoTask) -> Double {
-        guard let completions = task.completions, !completions.isEmpty else { return 0 }
-        guard task.recurrenceType != .none else {
-            // For one-time tasks, return 1.0 if completed, 0 otherwise
-            return completions.isEmpty ? 0 : 1.0
-        }
-
-        let calendar = Calendar.current
-        let scheduledDays = countScheduledDays(for: task, calendar: calendar)
-        let completionDays = Set(completions.map { calendar.startOfDay(for: $0.completedAt) }).count
-        return min(Double(completionDays) / Double(scheduledDays), 1.0)
-    }
-
     /// Counts scheduled days for a task based on its recurrence type
-    private func countScheduledDays(for task: TodoTask, calendar: Calendar) -> Int {
+    static func countScheduledDays(for task: TodoTask, calendar: Calendar, today: Date) -> Int {
         let startDate = calendar.startOfDay(for: task.createdAt)
-        let today = calendar.startOfDay(for: Date())
 
         switch task.recurrenceType {
         case .daily:

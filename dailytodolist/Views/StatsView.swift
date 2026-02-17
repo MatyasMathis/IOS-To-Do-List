@@ -42,6 +42,15 @@ struct StatsView: View {
     @State private var displayedMonth: Date = Date()
     @State private var showCalendarShare = false
 
+    // Cached stats — recomputed on category/data change, not on every body evaluation
+    @State private var cachedFilteredTasks: [TodoTask] = []
+    @State private var cachedCompletionDates: [Date] = []
+    @State private var cachedCompletionDateSet: Set<Date> = []
+    @State private var cachedTotalReps: Int = 0
+    @State private var cachedCompletionRate: Int? = nil
+    @State private var cachedCurrentStreak: Int = 0
+    @State private var cachedBestStreak: Int = 0
+
     // MARK: - Computed Properties
 
     /// All unique categories from active tasks
@@ -50,152 +59,8 @@ struct StatsView: View {
         let custom = customCategories.map { $0.name }
         let all = builtIn + custom
 
-        // Only return categories that have at least one task
         let taskCategories = Set(allTasks.compactMap { $0.category })
         return all.filter { taskCategories.contains($0) }
-    }
-
-    /// Tasks filtered by selected category
-    private var filteredTasks: [TodoTask] {
-        guard let category = selectedCategory else { return allTasks }
-        return allTasks.filter { $0.category == category }
-    }
-
-    /// Completions filtered by selected category
-    private var filteredCompletions: [TaskCompletion] {
-        guard let category = selectedCategory else { return allCompletions }
-        return allCompletions.filter { $0.task?.category == category }
-    }
-
-    /// Completion dates for the filtered set
-    private var filteredCompletionDates: [Date] {
-        filteredCompletions.map { $0.completedAt }
-    }
-
-    /// Unique completion dates for calendar
-    private var filteredCompletionDateSet: Set<Date> {
-        let calendar = Calendar.current
-        return Set(filteredCompletions.map { calendar.startOfDay(for: $0.completedAt) })
-    }
-
-    /// Total completions count
-    private var totalReps: Int {
-        filteredCompletions.count
-    }
-
-    /// Overall completion rate for recurring tasks
-    /// Accounts for recurrence schedule: weekly tasks only count scheduled days
-    private var completionRate: Int? {
-        let calendar = Calendar.current
-        let recurringTasks = filteredTasks.filter { $0.recurrenceType != .none }
-        guard !recurringTasks.isEmpty else { return nil }
-
-        var totalScheduledDays = 0
-        var totalCompletionDays = 0
-
-        for task in recurringTasks {
-            let scheduledDays = countScheduledDays(for: task, calendar: calendar)
-            let completionDays = Set(task.completions?.map { calendar.startOfDay(for: $0.completedAt) } ?? []).count
-            totalScheduledDays += scheduledDays
-            totalCompletionDays += min(completionDays, scheduledDays)
-        }
-
-        guard totalScheduledDays > 0 else { return nil }
-        return min(Int(Double(totalCompletionDays) / Double(totalScheduledDays) * 100), 100)
-    }
-
-    /// Counts scheduled days for a task based on its recurrence type
-    private func countScheduledDays(for task: TodoTask, calendar: Calendar) -> Int {
-        let startDate = calendar.startOfDay(for: task.createdAt)
-        let today = calendar.startOfDay(for: Date())
-
-        switch task.recurrenceType {
-        case .daily:
-            return max((calendar.dateComponents([.day], from: startDate, to: today).day ?? 0) + 1, 1)
-
-        case .weekly:
-            let weekdaySet = Set(task.selectedWeekdays)
-            guard !weekdaySet.isEmpty else { return 1 }
-            let totalDays = max((calendar.dateComponents([.day], from: startDate, to: today).day ?? 0) + 1, 1)
-            let fullWeeks = totalDays / 7
-            let remainingDays = totalDays % 7
-            var count = fullWeeks * weekdaySet.count
-            let startWeekday = calendar.component(.weekday, from: startDate)
-            for i in 0..<remainingDays {
-                let wd = ((startWeekday - 1 + i) % 7) + 1
-                if weekdaySet.contains(wd) { count += 1 }
-            }
-            return max(count, 1)
-
-        case .monthly:
-            let daySet = Set(task.selectedMonthDays)
-            guard !daySet.isEmpty else { return 1 }
-            var count = 0
-            var current = calendar.date(from: calendar.dateComponents([.year, .month], from: startDate)) ?? startDate
-            let todayMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: today)) ?? today
-            while current <= todayMonth {
-                let daysInMonth = calendar.range(of: .day, in: .month, for: current)?.count ?? 30
-                for day in daySet {
-                    guard day <= daysInMonth else { continue }
-                    if let date = calendar.date(bySetting: .day, value: day, of: current),
-                       calendar.startOfDay(for: date) >= startDate && calendar.startOfDay(for: date) <= today {
-                        count += 1
-                    }
-                }
-                guard let next = calendar.date(byAdding: .month, value: 1, to: current) else { break }
-                current = next
-            }
-            return max(count, 1)
-
-        case .none:
-            return 1
-        }
-    }
-
-    /// Current streak (consecutive days with at least one completion in filtered set)
-    private var currentStreak: Int {
-        guard !filteredCompletions.isEmpty else { return 0 }
-
-        let calendar = Calendar.current
-        let completionDates = filteredCompletionDateSet
-        var streak = 0
-        var checkDate = calendar.startOfDay(for: Date())
-
-        if !completionDates.contains(checkDate) {
-            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
-            if !completionDates.contains(yesterday) { return 0 }
-            checkDate = yesterday
-        }
-
-        while completionDates.contains(checkDate) {
-            streak += 1
-            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
-            checkDate = prev
-        }
-
-        return streak
-    }
-
-    /// Best streak ever for the filtered set
-    private var bestStreak: Int {
-        let calendar = Calendar.current
-        let sortedDates = filteredCompletionDateSet.sorted()
-        guard !sortedDates.isEmpty else { return 0 }
-
-        var maxStreak = 1
-        var current = 1
-
-        for i in 1..<sortedDates.count {
-            if let expected = calendar.date(byAdding: .day, value: 1, to: sortedDates[i - 1]),
-               calendar.isDate(expected, inSameDayAs: sortedDates[i]) {
-                current += 1
-                maxStreak = max(maxStreak, current)
-            } else {
-                current = 1
-            }
-        }
-
-        return maxStreak
     }
 
     /// Color for the selected category
@@ -216,37 +81,37 @@ struct StatsView: View {
                         // Category pill selector
                         categoryPills
 
-                        if filteredCompletions.isEmpty && filteredTasks.isEmpty {
+                        if cachedCompletionDates.isEmpty && cachedFilteredTasks.isEmpty {
                             emptyState
                         } else {
                             // Quick numbers
                             quickNumbers
 
                             // Weekly rhythm
-                            if !filteredCompletions.isEmpty {
+                            if !cachedCompletionDates.isEmpty {
                                 WeeklyRhythmChart(
-                                    completions: filteredCompletionDates,
+                                    completions: cachedCompletionDates,
                                     accentColor: categoryColor
                                 )
                             }
 
                             // Monthly trend
-                            if !filteredCompletions.isEmpty {
+                            if !cachedCompletionDates.isEmpty {
                                 MonthlyTrendCard(
-                                    completions: filteredCompletionDates,
+                                    completions: cachedCompletionDates,
                                     accentColor: categoryColor
                                 )
                             }
 
                             // Tasks in category
-                            if !filteredTasks.isEmpty {
-                                CategoryTasksList(tasks: filteredTasks)
+                            if !cachedFilteredTasks.isEmpty {
+                                CategoryTasksList(tasks: cachedFilteredTasks)
                             }
 
                             // Completion calendar with share option
                             VStack(spacing: Spacing.sm) {
                                 CategoryCompletionCalendar(
-                                    completionDates: filteredCompletionDateSet,
+                                    completionDates: cachedCompletionDateSet,
                                     displayedMonth: $displayedMonth,
                                     accentColor: categoryColor
                                 )
@@ -276,7 +141,7 @@ struct StatsView: View {
                     }
                     .padding(.horizontal, Spacing.lg)
                     .padding(.top, Spacing.md)
-                    .padding(.bottom, Spacing.xxl)
+                    .padding(.bottom, Spacing.xxl * 2)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -305,13 +170,17 @@ struct StatsView: View {
                         categoryName: category,
                         categoryIcon: Color.categoryIcon(for: category, customCategories: customCategories),
                         categoryColorHex: colorHex(for: category),
-                        completionDates: filteredCompletionDateSet,
+                        completionDates: cachedCompletionDateSet,
                         displayedMonth: displayedMonth,
-                        streak: currentStreak,
+                        streak: cachedCurrentStreak,
                         completionCount: completionCountForMonth
                     )
                 }
             }
+            .onAppear { recomputeStats() }
+            .onChange(of: selectedCategory) { recomputeStats() }
+            .onChange(of: allCompletions.count) { recomputeStats() }
+            .onChange(of: allTasks.count) { recomputeStats() }
         }
     }
 
@@ -320,7 +189,7 @@ struct StatsView: View {
         let cal = Calendar.current
         guard let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: displayedMonth)),
               let nextMonth = cal.date(byAdding: .month, value: 1, to: monthStart) else { return 0 }
-        return filteredCompletionDateSet.filter { $0 >= monthStart && $0 < nextMonth }.count
+        return cachedCompletionDateSet.filter { $0 >= monthStart && $0 < nextMonth }.count
     }
 
     /// Returns hex color string for a category
@@ -389,11 +258,11 @@ struct StatsView: View {
         HStack(spacing: 0) {
             StatItem(
                 label: "TOTAL REPS",
-                value: "\(totalReps)",
+                value: "\(cachedTotalReps)",
                 color: categoryColor
             )
 
-            if let rate = completionRate {
+            if let rate = cachedCompletionRate {
                 StatItem(
                     label: "RATE",
                     value: "\(rate)%",
@@ -403,14 +272,14 @@ struct StatsView: View {
 
             StatItem(
                 label: "STREAK",
-                value: "\(currentStreak)",
-                color: currentStreak > 0 ? categoryColor : .mediumGray
+                value: "\(cachedCurrentStreak)",
+                color: cachedCurrentStreak > 0 ? categoryColor : .mediumGray
             )
 
             StatItem(
                 label: "BEST",
-                value: "\(bestStreak)",
-                color: bestStreak > 0 ? categoryColor : .mediumGray
+                value: "\(cachedBestStreak)",
+                color: cachedBestStreak > 0 ? categoryColor : .mediumGray
             )
         }
         .padding(.vertical, Spacing.md)
@@ -437,6 +306,106 @@ struct StatsView: View {
             }
         }
         .padding(.vertical, Spacing.xxl * 2)
+    }
+
+    // MARK: - Stats Computation
+
+    /// Recomputes all cached stats in a single pass.
+    /// Called on appear and when category/data changes.
+    private func recomputeStats() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        // Filter tasks
+        let tasks: [TodoTask]
+        if let category = selectedCategory {
+            tasks = allTasks.filter { $0.category == category }
+        } else {
+            tasks = allTasks
+        }
+        cachedFilteredTasks = tasks
+
+        // Filter completions and build date sets in one pass
+        let completions: [TaskCompletion]
+        if let category = selectedCategory {
+            completions = allCompletions.filter { $0.task?.category == category }
+        } else {
+            completions = allCompletions
+        }
+
+        var dates: [Date] = []
+        var dateSet: Set<Date> = []
+        dates.reserveCapacity(completions.count)
+
+        for completion in completions {
+            dates.append(completion.completedAt)
+            dateSet.insert(calendar.startOfDay(for: completion.completedAt))
+        }
+
+        cachedCompletionDates = dates
+        cachedCompletionDateSet = dateSet
+        cachedTotalReps = completions.count
+
+        // Completion rate for recurring tasks
+        let recurringTasks = tasks.filter { $0.recurrenceType != .none }
+        if recurringTasks.isEmpty {
+            cachedCompletionRate = nil
+        } else {
+            var totalScheduledDays = 0
+            var totalCompletionDays = 0
+            for task in recurringTasks {
+                let scheduledDays = CategoryTasksList.countScheduledDays(for: task, calendar: calendar, today: today)
+                let completionDays = Set(task.completions?.map { calendar.startOfDay(for: $0.completedAt) } ?? []).count
+                totalScheduledDays += scheduledDays
+                totalCompletionDays += min(completionDays, scheduledDays)
+            }
+            if totalScheduledDays > 0 {
+                cachedCompletionRate = min(Int(Double(totalCompletionDays) / Double(totalScheduledDays) * 100), 100)
+            } else {
+                cachedCompletionRate = nil
+            }
+        }
+
+        // Current streak
+        if dateSet.isEmpty {
+            cachedCurrentStreak = 0
+        } else {
+            var streak = 0
+            var checkDate = today
+            if !dateSet.contains(checkDate) {
+                if let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate),
+                   dateSet.contains(yesterday) {
+                    checkDate = yesterday
+                }
+            }
+            if dateSet.contains(checkDate) {
+                while dateSet.contains(checkDate) {
+                    streak += 1
+                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                    checkDate = prev
+                }
+            }
+            cachedCurrentStreak = streak
+        }
+
+        // Best streak
+        let sortedDates = dateSet.sorted()
+        if sortedDates.isEmpty {
+            cachedBestStreak = 0
+        } else {
+            var maxStreak = 1
+            var current = 1
+            for i in 1..<sortedDates.count {
+                if let expected = calendar.date(byAdding: .day, value: 1, to: sortedDates[i - 1]),
+                   calendar.isDate(expected, inSameDayAs: sortedDates[i]) {
+                    current += 1
+                    maxStreak = max(maxStreak, current)
+                } else {
+                    current = 1
+                }
+            }
+            cachedBestStreak = maxStreak
+        }
     }
 
     // MARK: - Helpers
