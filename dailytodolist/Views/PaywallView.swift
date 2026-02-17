@@ -53,7 +53,7 @@ struct PaywallView: View {
         .presentationBackground(Color.brandBlack)
         .alert("Purchase Failed", isPresented: showErrorAlert) {
             Button("OK") {
-                store.purchaseState = .idle
+                store.resetPurchaseState()
             }
         } message: {
             if case .failed(let message) = store.purchaseState {
@@ -71,7 +71,7 @@ struct PaywallView: View {
                 return false
             },
             set: { newValue in
-                if !newValue { store.purchaseState = .idle }
+                if !newValue { store.resetPurchaseState() }
             }
         )
     }

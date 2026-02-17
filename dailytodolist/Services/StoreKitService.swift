@@ -141,6 +141,12 @@ final class StoreKitService: ObservableObject {
         }
     }
 
+    // MARK: - Reset State
+
+    func resetPurchaseState() {
+        purchaseState = .idle
+    }
+
     // MARK: - Verification Helper
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
