@@ -26,32 +26,32 @@ struct TermsOfServiceView: View {
                             .font(.system(size: Typography.captionSize, weight: .medium))
                             .foregroundStyle(Color.mediumGray)
 
-                        section("Acceptance of Terms") {
+                        section("Acceptance of Terms", body:
                             """
                             By downloading, installing, or using REPS ("the app"), you agree to be \
                             bound by these Terms of Service. If you do not agree to these terms, \
                             do not use the app.
                             """
-                        }
+                        )
 
-                        section("Description of Service") {
+                        section("Description of Service", body:
                             """
                             REPS is a task management and habit tracking application designed for \
                             iOS. The app allows you to create, organize, and track daily tasks and \
                             recurring habits. All data is stored locally on your device.
                             """
-                        }
+                        )
 
-                        section("License") {
+                        section("License", body:
                             """
                             We grant you a limited, non-exclusive, non-transferable, revocable \
                             license to use REPS for personal, non-commercial purposes on any Apple \
                             device you own or control, subject to Apple's Usage Rules set forth in \
                             the App Store Terms of Service.
                             """
-                        }
+                        )
 
-                        section("In-App Purchases") {
+                        section("In-App Purchases", body:
                             """
                             REPS may offer premium features available through a one-time in-app \
                             purchase ("REPS Pro"). By completing a purchase:\n\n\
@@ -63,9 +63,9 @@ struct TermsOfServiceView: View {
                             the same Apple ID via Settings > Restore Purchases.\n\n\
                             • Prices are displayed in your local currency and may vary by region.
                             """
-                        }
+                        )
 
-                        section("User Responsibilities") {
+                        section("User Responsibilities", body:
                             """
                             You are responsible for:\n\n\
                             • Maintaining the security of your device and any data stored within \
@@ -74,73 +74,73 @@ struct TermsOfServiceView: View {
                             and regulations.\n\n\
                             • Any content you create within the app (task names, categories, etc.).
                             """
-                        }
+                        )
 
-                        section("Intellectual Property") {
+                        section("Intellectual Property", body:
                             """
                             The app, including its design, code, graphics, and branding, is owned \
                             by the developer and is protected by intellectual property laws. You \
                             may not copy, modify, distribute, or create derivative works based on \
                             the app.
                             """
-                        }
+                        )
 
-                        section("Disclaimer of Warranties") {
+                        section("Disclaimer of Warranties", body:
                             """
                             REPS is provided "as is" and "as available" without warranties of any \
                             kind, whether express or implied. We do not warrant that the app will \
                             be uninterrupted, error-free, or free of harmful components. Use of \
                             the app is at your sole risk.
                             """
-                        }
+                        )
 
-                        section("Limitation of Liability") {
+                        section("Limitation of Liability", body:
                             """
                             To the maximum extent permitted by applicable law, we shall not be \
                             liable for any indirect, incidental, special, consequential, or \
                             punitive damages, including but not limited to loss of data, arising \
                             from your use of or inability to use the app.
                             """
-                        }
+                        )
 
-                        section("Data and Backups") {
+                        section("Data and Backups", body:
                             """
                             All task data is stored locally on your device. We are not responsible \
                             for data loss resulting from device failure, app deletion, or any other \
                             cause. We recommend using iCloud device backups to protect your data.
                             """
-                        }
+                        )
 
-                        section("Termination") {
+                        section("Termination", body:
                             """
                             You may stop using the app at any time by deleting it from your device. \
                             We reserve the right to modify or discontinue the app at any time \
                             without prior notice.
                             """
-                        }
+                        )
 
-                        section("Changes to These Terms") {
+                        section("Changes to These Terms", body:
                             """
                             We may update these Terms of Service from time to time. Changes will \
                             be reflected in the app with an updated effective date. Continued use \
                             of the app after changes constitutes acceptance of the updated terms.
                             """
-                        }
+                        )
 
-                        section("Governing Law") {
+                        section("Governing Law", body:
                             """
                             These terms shall be governed by and construed in accordance with the \
                             laws of the European Union and applicable local jurisdiction, without \
                             regard to conflict of law principles.
                             """
-                        }
+                        )
 
-                        section("Contact") {
+                        section("Contact", body:
                             """
                             If you have questions about these Terms of Service, please reach out \
                             via the Contact / Feedback option in the app's Settings.
                             """
-                        }
+                        )
                     }
                     .padding(.horizontal, Spacing.lg)
                     .padding(.top, Spacing.lg)
