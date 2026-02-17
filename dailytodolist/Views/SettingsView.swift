@@ -20,6 +20,11 @@ struct SettingsView: View {
     @AppStorage("soundEnabled") private var soundEnabled: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
 
+    // MARK: - Sheet State
+
+    @State private var showPrivacyPolicy = false
+    @State private var showTermsOfService = false
+
     // MARK: - Computed
 
     private var appVersion: String {
@@ -198,16 +203,34 @@ struct SettingsView: View {
             sectionLabel("ABOUT")
 
             VStack(spacing: 0) {
-                aboutRow(icon: "star", title: "Rate on App Store")
+                aboutRow(icon: "star", title: "Rate on App Store") {
+                    // Placeholder: open App Store review
+                }
                 Divider().background(Color.darkGray2)
-                aboutRow(icon: "hand.raised", title: "Privacy Policy")
+                aboutRow(icon: "hand.raised", title: "Privacy Policy") {
+                    showPrivacyPolicy = true
+                }
                 Divider().background(Color.darkGray2)
-                aboutRow(icon: "doc.text", title: "Terms of Service")
+                aboutRow(icon: "doc.text", title: "Terms of Service") {
+                    showTermsOfService = true
+                }
                 Divider().background(Color.darkGray2)
-                aboutRow(icon: "envelope", title: "Contact / Feedback")
+                aboutRow(icon: "envelope", title: "Contact / Feedback") {
+                    // Placeholder: open mail or feedback form
+                }
             }
             .background(Color.darkGray1)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+        }
+        .sheet(isPresented: $showPrivacyPolicy) {
+            PrivacyPolicyView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showTermsOfService) {
+            TermsOfServiceView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -267,9 +290,9 @@ struct SettingsView: View {
         .padding(Spacing.lg)
     }
 
-    private func aboutRow(icon: String, title: String) -> some View {
+    private func aboutRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button {
-            // Placeholder: open respective link
+            action()
         } label: {
             HStack {
                 Image(systemName: icon)
