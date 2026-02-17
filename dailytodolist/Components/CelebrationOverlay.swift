@@ -151,8 +151,7 @@ struct CelebrationOverlay: View {
 
     private func showAnimation() {
         // Satisfying haptic pattern
-        let impact = UIImpactFeedbackGenerator(style: .medium)
-        impact.impactOccurred()
+        HapticService.mediumImpact()
 
         // Entrance animation
         withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
@@ -163,8 +162,7 @@ struct CelebrationOverlay: View {
 
         // Second subtle haptic at peak
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            let softImpact = UIImpactFeedbackGenerator(style: .soft)
-            softImpact.impactOccurred()
+            HapticService.softImpact()
         }
 
         // Auto-dismiss after delay

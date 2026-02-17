@@ -111,8 +111,7 @@ struct MainTabView: View {
 
     private func tabButton(tab: Tab) -> some View {
         Button {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
+            HapticService.lightImpact()
 
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selectedTab = tab

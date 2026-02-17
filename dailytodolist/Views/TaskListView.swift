@@ -39,6 +39,13 @@ struct TaskListView: View {
     // Year in Pixels sheet
     @State private var showYearInPixels = false
 
+    // Settings sheet
+    @State private var showSettings = false
+
+    // MARK: - Preferences
+
+    @AppStorage("soundEnabled") private var soundEnabled: Bool = true
+
     // Category share sheet
     @State private var showCategoryShare = false
     @State private var completedCategoryName: String = ""
@@ -156,6 +163,15 @@ struct TaskListView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: Spacing.md) {
+                        // Settings gear
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(Color.mediumGray)
+                        }
+
                         // Date
                         Text(formattedDate)
                             .font(.system(size: Typography.bodySize, weight: .medium))
@@ -201,6 +217,11 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showYearInPixels) {
                 YearInPixelsView()
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showCategoryShare) {
                 CategoryShareSheet(
@@ -296,8 +317,7 @@ struct TaskListView: View {
 
         if isNowCompleted {
             // Haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            HapticService.success()
 
             // Check for streak milestone message first, then fall back to random
             let streak = calculateStreak()
