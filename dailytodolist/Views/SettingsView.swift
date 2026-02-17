@@ -20,10 +20,15 @@ struct SettingsView: View {
     @AppStorage("soundEnabled") private var soundEnabled: Bool = true
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
 
+    // MARK: - Store
+
+    @ObservedObject private var store = StoreKitService.shared
+
     // MARK: - Sheet State
 
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfService = false
+    @State private var showPaywall = false
 
     // MARK: - Computed
 
@@ -110,28 +115,50 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionLabel("STATUS")
 
-            HStack {
-                Image(systemName: "crown")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Color.mediumGray)
+            Button {
+                if !store.isProUnlocked {
+                    showPaywall = true
+                }
+            } label: {
+                HStack {
+                    Image(systemName: store.isProUnlocked ? "crown.fill" : "crown")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(store.isProUnlocked ? Color.recoveryGreen : Color.mediumGray)
 
-                Text("Free Plan")
-                    .font(.system(size: Typography.bodySize, weight: .medium))
-                    .foregroundStyle(Color.pureWhite)
+                    Text(store.isProUnlocked ? "REPS Pro" : "Free Plan")
+                        .font(.system(size: Typography.bodySize, weight: .medium))
+                        .foregroundStyle(Color.pureWhite)
 
-                Spacer()
+                    Spacer()
 
-                Text("FREE")
-                    .font(.system(size: Typography.captionSize, weight: .bold))
-                    .foregroundStyle(Color.mediumGray)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xs)
-                    .background(Color.darkGray2)
-                    .clipShape(Capsule())
+                    if store.isProUnlocked {
+                        Text("PRO")
+                            .font(.system(size: Typography.captionSize, weight: .bold))
+                            .foregroundStyle(Color.brandBlack)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, Spacing.xs)
+                            .background(Color.recoveryGreen)
+                            .clipShape(Capsule())
+                    } else {
+                        Text("UPGRADE")
+                            .font(.system(size: Typography.captionSize, weight: .bold))
+                            .foregroundStyle(Color.brandBlack)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, Spacing.xs)
+                            .background(Color.recoveryGreen)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(Spacing.lg)
+                .background(Color.darkGray1)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
             }
-            .padding(Spacing.lg)
-            .background(Color.darkGray1)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+            .buttonStyle(.plain)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -171,7 +198,7 @@ struct SettingsView: View {
             sectionLabel("DATA")
 
             Button {
-                // Placeholder: restore purchases
+                Task { await store.restore() }
             } label: {
                 HStack {
                     Image(systemName: "arrow.clockwise")

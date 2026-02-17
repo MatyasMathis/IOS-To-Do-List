@@ -177,8 +177,17 @@ struct CategoryButton: View {
 struct AddCategoryButton: View {
     let action: () -> Void
 
+    @ObservedObject private var store = StoreKitService.shared
+    @State private var showPaywall = false
+
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            if store.isProUnlocked {
+                action()
+            } else {
+                showPaywall = true
+            }
+        }) {
             VStack(spacing: Spacing.xs) {
                 ZStack {
                     RoundedRectangle(cornerRadius: CornerRadius.standard)
@@ -194,7 +203,9 @@ struct AddCategoryButton: View {
                             .font(.system(size: 20, weight: .medium))
                             .foregroundStyle(Color.mediumGray)
 
-                        ProBadge()
+                        if !store.isProUnlocked {
+                            ProBadge()
+                        }
                     }
                 }
 
@@ -205,6 +216,11 @@ struct AddCategoryButton: View {
             }
         }
         .buttonStyle(.plain)
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 
