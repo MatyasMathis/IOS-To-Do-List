@@ -23,7 +23,7 @@ struct CategoryTasksList: View {
 
     // MARK: - Computed Properties
 
-    /// Pre-computed task stats sorted by completion rate (best first), then by title.
+    /// Pre-computed task stats sorted by most active (completion count) first, then alphabetically.
     /// Computes streak, rate, and count once per task — avoids duplicate calculations.
     private var taskStats: [(task: TodoTask, completionCount: Int, streak: Int, rate: Double)] {
         let calendar = Calendar.current
@@ -67,7 +67,7 @@ struct CategoryTasksList: View {
             return (task: task, completionCount: completionCount, streak: streak, rate: rate)
         }
         .sorted { a, b in
-            if a.rate != b.rate { return a.rate > b.rate }
+            if a.completionCount != b.completionCount { return a.completionCount > b.completionCount }
             return a.task.title < b.task.title
         }
     }
@@ -201,29 +201,25 @@ struct CategoryTaskRow: View {
         return .strainRed
     }
 
+    private var streakColor: Color {
+        if streak >= 7 { return .strainRed }
+        if streak >= 3 { return .personalOrange }
+        return .recoveryGreen
+    }
+
     var body: some View {
         HStack(spacing: Spacing.md) {
-            // Task title and info
-            VStack(alignment: .leading, spacing: 2) {
+            // Left: title + subtitle
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(task.title)
-                    .font(.system(size: Typography.bodySize, weight: .medium))
+                    .font(.system(size: Typography.bodySize, weight: .semibold))
                     .foregroundStyle(Color.pureWhite)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.sm) {
                     if task.recurrenceType != .none {
                         Text(task.recurrenceDisplayString)
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(Color.mediumGray)
-                    }
-
-                    // Completion count
-                    HStack(spacing: 2) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(Color.mediumGray)
-                        Text("\(completionCount)")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.system(size: Typography.captionSize, weight: .medium))
                             .foregroundStyle(Color.mediumGray)
                     }
                 }
@@ -231,47 +227,47 @@ struct CategoryTaskRow: View {
 
             Spacer()
 
-            // Streak (if active)
-            if streak > 0 {
-                HStack(spacing: 3) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(
-                            streak >= 7 ? Color.strainRed :
-                            streak >= 3 ? Color.personalOrange :
-                            Color.recoveryGreen
-                        )
-                    Text("\(streak)")
-                        .font(.system(size: Typography.captionSize, weight: .bold))
-                        .foregroundStyle(Color.pureWhite)
-                }
-            }
-
-            // Rate bar
-            if task.recurrenceType != .none {
-                HStack(spacing: Spacing.xs) {
-                    // Mini progress bar
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.darkGray2)
-                                .frame(height: 4)
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(rateColor)
-                                .frame(width: geometry.size.width * rate, height: 4)
-                        }
+            // Right: stat chips
+            HStack(spacing: Spacing.sm) {
+                // Streak chip
+                if streak > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(streakColor)
+                        Text("\(streak)")
+                            .font(.system(size: Typography.captionSize, weight: .bold))
+                            .foregroundStyle(streakColor)
                     }
-                    .frame(width: 32, height: 4)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xs)
+                    .background(streakColor.opacity(0.12))
+                    .clipShape(Capsule())
+                }
 
+                // Rate chip (recurring only)
+                if task.recurrenceType != .none {
                     Text("\(Int(rate * 100))%")
                         .font(.system(size: Typography.captionSize, weight: .bold))
                         .foregroundStyle(rateColor)
-                        .frame(width: 32, alignment: .trailing)
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, Spacing.xs)
+                        .background(rateColor.opacity(0.12))
+                        .clipShape(Capsule())
                 }
+
+                // Reps count
+                Text("\(completionCount)")
+                    .font(.system(size: Typography.labelSize, weight: .bold))
+                    .foregroundStyle(Color.pureWhite)
+                    .frame(minWidth: 28)
+                    .padding(.vertical, Spacing.xs)
+                    .background(Color.darkGray2)
+                    .clipShape(Capsule())
             }
         }
         .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
+        .padding(.vertical, Spacing.md + 2)
     }
 }
 
