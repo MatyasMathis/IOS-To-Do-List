@@ -25,6 +25,10 @@ struct StatsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    // MARK: - Pro Gate
+
+    @ObservedObject private var store = StoreKitService.shared
+
     // MARK: - Queries
 
     @Query(filter: #Predicate<TodoTask> { $0.isActive }, sort: \TodoTask.title)
@@ -78,65 +82,16 @@ struct StatsView: View {
 
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
-                        // Category pill selector
+                        // Category pill selector — always interactive (teaser)
                         categoryPills
 
-                        if cachedCompletionDates.isEmpty && cachedFilteredTasks.isEmpty {
-                            emptyState
-                        } else {
-                            // Quick numbers
-                            quickNumbers
-
-                            // Weekly rhythm
-                            if !cachedCompletionDates.isEmpty {
-                                WeeklyRhythmChart(
-                                    completions: cachedCompletionDates,
-                                    accentColor: categoryColor
-                                )
-                            }
-
-                            // Monthly trend
-                            if !cachedCompletionDates.isEmpty {
-                                MonthlyTrendCard(
-                                    completions: cachedCompletionDates,
-                                    accentColor: categoryColor
-                                )
-                            }
-
-                            // Tasks in category
-                            if !cachedFilteredTasks.isEmpty {
-                                CategoryTasksList(tasks: cachedFilteredTasks)
-                            }
-
-                            // Completion calendar with share option
-                            VStack(spacing: Spacing.sm) {
-                                CategoryCompletionCalendar(
-                                    completionDates: cachedCompletionDateSet,
-                                    displayedMonth: $displayedMonth,
-                                    accentColor: categoryColor
-                                )
-
-                                // Share calendar button (pro feature) — only for specific categories
-                                if selectedCategory != nil {
-                                    Button {
-                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                        generator.impactOccurred()
-                                        showCalendarShare = true
-                                    } label: {
-                                        HStack(spacing: Spacing.sm) {
-                                            Image(systemName: "square.and.arrow.up")
-                                                .font(.system(size: 14, weight: .bold))
-                                            Text("Share Calendar")
-                                                .font(.system(size: Typography.bodySize, weight: .bold))
-                                        }
-                                        .foregroundStyle(Color.brandBlack)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: ComponentSize.buttonHeight)
-                                        .background(categoryColor)
-                                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
-                                    }
-                                }
-                            }
+                        // Stats content — gated behind Pro with blurred sneak peek
+                        ProFeatureOverlay(
+                            icon: "chart.bar.fill",
+                            title: "Statistics",
+                            subtitle: "Unlock detailed stats, trends,\nand completion analytics"
+                        ) {
+                            statsContent
                         }
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -208,6 +163,70 @@ struct StatsView: View {
     }
 
     // MARK: - Subviews
+
+    /// Stats content — everything below category pills
+    @ViewBuilder
+    private var statsContent: some View {
+        if cachedCompletionDates.isEmpty && cachedFilteredTasks.isEmpty {
+            emptyState
+        } else {
+            VStack(spacing: Spacing.xl) {
+                // Quick numbers
+                quickNumbers
+
+                // Weekly rhythm
+                if !cachedCompletionDates.isEmpty {
+                    WeeklyRhythmChart(
+                        completions: cachedCompletionDates,
+                        accentColor: categoryColor
+                    )
+                }
+
+                // Monthly trend
+                if !cachedCompletionDates.isEmpty {
+                    MonthlyTrendCard(
+                        completions: cachedCompletionDates,
+                        accentColor: categoryColor
+                    )
+                }
+
+                // Tasks in category
+                if !cachedFilteredTasks.isEmpty {
+                    CategoryTasksList(tasks: cachedFilteredTasks)
+                }
+
+                // Completion calendar with share option
+                VStack(spacing: Spacing.sm) {
+                    CategoryCompletionCalendar(
+                        completionDates: cachedCompletionDateSet,
+                        displayedMonth: $displayedMonth,
+                        accentColor: categoryColor
+                    )
+
+                    // Share calendar button (pro feature) — only for specific categories
+                    if selectedCategory != nil && store.isProUnlocked {
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            showCalendarShare = true
+                        } label: {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Share Calendar")
+                                    .font(.system(size: Typography.bodySize, weight: .bold))
+                            }
+                            .foregroundStyle(Color.brandBlack)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: ComponentSize.buttonHeight)
+                            .background(categoryColor)
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /// Horizontal scrollable category pills
     private var categoryPills: some View {

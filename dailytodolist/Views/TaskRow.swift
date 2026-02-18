@@ -37,6 +37,9 @@ struct TaskRow: View {
     /// Tracks whether the task appears completed in the UI
     @State private var isCompleted: Bool = false
 
+    /// Sound preference
+    @AppStorage("soundEnabled") private var soundEnabled: Bool = true
+
     // MARK: - Body
 
     var body: some View {
@@ -112,10 +115,10 @@ struct TaskRow: View {
 
         // Success haptic and sound for completion
         if isCompleted {
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            // Play a satisfying completion sound (system key-press tick sound)
-            AudioServicesPlaySystemSound(1104)
+            HapticService.success()
+            if soundEnabled {
+                AudioServicesPlaySystemSound(1104)
+            }
         }
 
         // Notify parent to handle the completion in the database

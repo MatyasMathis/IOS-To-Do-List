@@ -101,9 +101,7 @@ struct FloatingActionButton: View {
 
     var body: some View {
         Button(action: {
-            // Haptic feedback
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
+            HapticService.mediumImpact()
             action()
         }) {
             ZStack {
@@ -138,9 +136,7 @@ struct CheckboxButton: View {
 
     var body: some View {
         Button(action: {
-            // Haptic feedback
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
+            HapticService.mediumImpact()
             action()
         }) {
             ZStack {

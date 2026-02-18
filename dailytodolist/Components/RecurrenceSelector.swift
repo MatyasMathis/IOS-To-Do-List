@@ -80,14 +80,26 @@ struct RecurrenceTypeOption: View {
     let isSelected: Bool
     let action: () -> Void
 
+    @ObservedObject private var store = StoreKitService.shared
+    @State private var showPaywall = false
+
     /// Premium features: weekly and monthly recurrence
     private var isPremiumFeature: Bool {
         type == .weekly || type == .monthly
     }
 
+    /// Whether this option is locked behind Pro
+    private var isLocked: Bool {
+        isPremiumFeature && !store.isProUnlocked
+    }
+
     var body: some View {
         Button(action: {
-            action()
+            if isLocked {
+                showPaywall = true
+            } else {
+                action()
+            }
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
         }) {
@@ -117,7 +129,7 @@ struct RecurrenceTypeOption: View {
                                 .foregroundStyle(Color.performancePurple)
                         }
 
-                        if isPremiumFeature {
+                        if isLocked {
                             ProBadge()
                         }
                     }
@@ -131,8 +143,14 @@ struct RecurrenceTypeOption: View {
             }
             .padding(Spacing.lg)
             .contentShape(Rectangle())
+            .opacity(isLocked ? 0.6 : 1.0)
         }
         .buttonStyle(.plain)
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 

@@ -20,6 +20,10 @@ struct YearInPixelsView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // MARK: - Pro Gate
+
+    @ObservedObject private var store = StoreKitService.shared
+
     // MARK: - Queries
 
     @Query(sort: \TaskCompletion.completedAt, order: .reverse)
@@ -155,13 +159,24 @@ struct YearInPixelsView: View {
 
                 ScrollView {
                     VStack(spacing: Spacing.xxl) {
+                        // Year selector — always visible
                         yearSelector
-                        statsSummary
-                        pixelGrid
-                        legend
 
-                        if let info = selectedDayInfo {
-                            selectedDayDetail(info)
+                        // Year content — gated behind Pro with blurred sneak peek
+                        ProFeatureOverlay(
+                            icon: "calendar.badge.clock",
+                            title: "Year in Pixels",
+                            subtitle: "Unlock your full-year heatmap\nand completion patterns"
+                        ) {
+                            VStack(spacing: Spacing.xxl) {
+                                statsSummary
+                                pixelGrid
+                                legend
+
+                                if let info = selectedDayInfo {
+                                    selectedDayDetail(info)
+                                }
+                            }
                         }
 
                         Color.clear.frame(height: 40)

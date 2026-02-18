@@ -1,0 +1,85 @@
+{
+  "identifier" : "8B3C5A2E-1D4F-4E8A-B9C7-6F2A0D3E5B1C",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "D1A2B3C4-E5F6-7890-ABCD-EF1234567890",
+      "localizations" : [
+        {
+          "description" : "Unlock all Pro features forever",
+          "displayName" : "REPS Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.mathis.reps.pro",
+      "referenceName" : "REPS Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "1234567890",
+    "_developerTeamID" : "XXXXXXXXXX",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : "2026-02-18T00:00:00Z",
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Transaction Listener"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
