@@ -108,9 +108,25 @@ struct PaywallView: View {
     private var featuresSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             featureRow(
+                icon: "chart.bar.fill",
+                title: "Detailed Statistics",
+                subtitle: "Unlock trends, streaks, and completion analytics"
+            )
+
+            Divider().background(Color.darkGray2)
+
+            featureRow(
                 icon: "calendar.badge.clock",
-                title: "Weekly & Monthly Recurrence",
-                subtitle: "Schedule tasks for specific days of the week or month"
+                title: "Year in Pixels & Recurrence",
+                subtitle: "Full-year heatmap plus weekly & monthly scheduling"
+            )
+
+            Divider().background(Color.darkGray2)
+
+            featureRow(
+                icon: "square.and.arrow.up",
+                title: "Share Your Wins",
+                subtitle: "Share completion calendars and category stats"
             )
 
             Divider().background(Color.darkGray2)
@@ -119,14 +135,6 @@ struct PaywallView: View {
                 icon: "plus.square.on.square",
                 title: "Custom Categories",
                 subtitle: "Create unlimited categories with custom colors and icons"
-            )
-
-            Divider().background(Color.darkGray2)
-
-            featureRow(
-                icon: "square.and.arrow.up",
-                title: "Share Stats & Calendars",
-                subtitle: "Share your completion calendars and category stats"
             )
 
             Divider().background(Color.darkGray2)

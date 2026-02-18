@@ -42,6 +42,10 @@ struct TaskListView: View {
     // Settings sheet
     @State private var showSettings = false
 
+    // Pro paywall (for gated share features)
+    @ObservedObject private var storeService = StoreKitService.shared
+    @State private var showSharePaywall = false
+
     // MARK: - Preferences
 
     @AppStorage("soundEnabled") private var soundEnabled: Bool = true
@@ -136,7 +140,11 @@ struct TaskListView: View {
                             categoryIcon: completedCategoryIcon,
                             onTap: {
                                 withAnimation { showShareToast = false }
-                                showCategoryShare = true
+                                if storeService.isProUnlocked {
+                                    showCategoryShare = true
+                                } else {
+                                    showSharePaywall = true
+                                }
                             },
                             onDismiss: {
                                 withAnimation { showShareToast = false }
@@ -235,6 +243,11 @@ struct TaskListView: View {
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showSharePaywall) {
+                PaywallView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .onAppear {
                 OnboardingService.createStarterTasksIfNeeded(modelContext: modelContext)

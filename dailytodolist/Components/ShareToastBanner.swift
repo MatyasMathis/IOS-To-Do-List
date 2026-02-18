@@ -19,6 +19,8 @@ struct ShareToastBanner: View {
     let onTap: () -> Void
     let onDismiss: () -> Void
 
+    @ObservedObject private var store = StoreKitService.shared
+
     private var categoryColor: Color { Color(hex: categoryColorHex) }
 
     var body: some View {
@@ -31,21 +33,27 @@ struct ShareToastBanner: View {
 
                 // Text
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(categoryName) complete")
-                        .font(.system(size: Typography.h4Size, weight: .bold))
-                        .foregroundStyle(Color.pureWhite)
+                    HStack(spacing: Spacing.xs) {
+                        Text("\(categoryName) complete")
+                            .font(.system(size: Typography.h4Size, weight: .bold))
+                            .foregroundStyle(Color.pureWhite)
 
-                    Text("Tap to share your win")
+                        if !store.isProUnlocked {
+                            ProBadge()
+                        }
+                    }
+
+                    Text(store.isProUnlocked ? "Tap to share your win" : "Unlock Pro to share your wins")
                         .font(.system(size: Typography.captionSize, weight: .medium))
                         .foregroundStyle(Color.mediumGray)
                 }
 
                 Spacer()
 
-                // Share icon
-                Image(systemName: "square.and.arrow.up")
+                // Share icon (or lock when not pro)
+                Image(systemName: store.isProUnlocked ? "square.and.arrow.up" : "lock.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(categoryColor)
+                    .foregroundStyle(store.isProUnlocked ? categoryColor : Color.recoveryGreen)
 
                 // Dismiss X
                 Button {
