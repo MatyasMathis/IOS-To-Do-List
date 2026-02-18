@@ -75,23 +75,33 @@ struct ProFeatureOverlay<Content: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // Unlock button
-            Button {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
-                showPaywall = true
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("Unlock with REPS Pro")
-                        .font(.system(size: Typography.bodySize, weight: .bold))
+            // Unlock button with price
+            VStack(spacing: Spacing.sm) {
+                Button {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showPaywall = true
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Unlock REPS Pro")
+                            .font(.system(size: Typography.bodySize, weight: .bold))
+                        if let product = store.proProduct {
+                            Text("— \(product.displayPrice)")
+                                .font(.system(size: Typography.bodySize, weight: .bold))
+                        }
+                    }
+                    .foregroundStyle(Color.brandBlack)
+                    .frame(maxWidth: 280)
+                    .frame(height: ComponentSize.buttonHeight)
+                    .background(Color.recoveryGreen)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
                 }
-                .foregroundStyle(Color.brandBlack)
-                .frame(maxWidth: 260)
-                .frame(height: ComponentSize.buttonHeight)
-                .background(Color.recoveryGreen)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+
+                Text("One-time purchase. No subscription.")
+                    .font(.system(size: Typography.captionSize, weight: .medium))
+                    .foregroundStyle(Color.mediumGray)
             }
         }
         .padding(.vertical, Spacing.xxl)
