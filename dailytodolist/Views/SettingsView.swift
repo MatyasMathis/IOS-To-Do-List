@@ -52,6 +52,9 @@ struct SettingsView: View {
                         generalSection
                         dataSection
                         aboutSection
+                        #if DEBUG
+                        debugSection
+                        #endif
                         footerSection
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -260,6 +263,45 @@ struct SettingsView: View {
                 .presentationDragIndicator(.visible)
         }
     }
+
+    // MARK: - Debug Section (DEBUG only)
+
+    #if DEBUG
+    private var debugSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionLabel("DEBUG")
+
+            Button {
+                store.debugTogglePro()
+            } label: {
+                HStack {
+                    Image(systemName: "ant.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color.strainRed)
+                        .frame(width: 24)
+
+                    Text("Toggle Pro Status")
+                        .font(.system(size: Typography.bodySize, weight: .medium))
+                        .foregroundStyle(Color.pureWhite)
+
+                    Spacer()
+
+                    Text(store.isProUnlocked ? "ON" : "OFF")
+                        .font(.system(size: Typography.captionSize, weight: .bold))
+                        .foregroundStyle(store.isProUnlocked ? Color.recoveryGreen : Color.mediumGray)
+                }
+                .padding(Spacing.lg)
+                .background(Color.darkGray1)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.standard)
+                        .strokeBorder(Color.strainRed.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    #endif
 
     // MARK: - Footer Section
 

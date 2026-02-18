@@ -147,6 +147,15 @@ final class StoreKitService: ObservableObject {
         purchaseState = .idle
     }
 
+    // MARK: - Debug
+
+    #if DEBUG
+    /// Toggle Pro status for testing in simulator
+    func debugTogglePro() {
+        isProUnlocked.toggle()
+    }
+    #endif
+
     // MARK: - Verification Helper
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
