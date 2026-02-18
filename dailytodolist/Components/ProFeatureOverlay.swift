@@ -29,9 +29,12 @@ struct ProFeatureOverlay<Content: View>: View {
         } else {
             ZStack {
                 // Real content rendered blurred — the "sneak peek"
+                // Fixed height keeps the card position stable across categories
                 content()
                     .blur(radius: 12)
                     .allowsHitTesting(false)
+                    .frame(height: 480, alignment: .top)
+                    .clipped()
 
                 // Dark scrim for readability
                 Color.brandBlack.opacity(0.4)
@@ -40,6 +43,8 @@ struct ProFeatureOverlay<Content: View>: View {
                 // Unlock CTA card
                 unlockCard
             }
+            .frame(height: 480)
+            .clipped()
         }
     }
 
