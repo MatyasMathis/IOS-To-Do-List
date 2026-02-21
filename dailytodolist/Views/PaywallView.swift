@@ -153,30 +153,66 @@ struct PaywallView: View {
 
     private var purchaseSection: some View {
         VStack(spacing: Spacing.sm) {
-            Button {
-                Task { await store.purchase() }
-            } label: {
+            switch store.productLoadState {
+            case .loading:
                 HStack(spacing: Spacing.sm) {
-                    if store.purchaseState == .purchasing {
-                        ProgressView()
-                            .tint(Color.brandBlack)
-                    } else {
-                        Text("Unlock REPS Pro")
-                            .font(.system(size: Typography.bodySize, weight: .bold))
-
-                        if let product = store.proProduct {
-                            Text("— \(product.displayPrice)")
-                                .font(.system(size: Typography.bodySize, weight: .bold))
-                        }
-                    }
+                    ProgressView()
+                        .tint(Color.brandBlack)
+                    Text("Loading…")
+                        .font(.system(size: Typography.bodySize, weight: .bold))
                 }
                 .foregroundStyle(Color.brandBlack)
                 .frame(maxWidth: .infinity)
                 .frame(height: ComponentSize.buttonHeight)
-                .background(Color.recoveryGreen)
+                .background(Color.recoveryGreen.opacity(0.5))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+
+            case .failed(let message):
+                VStack(spacing: Spacing.sm) {
+                    Text(message)
+                        .font(.system(size: Typography.captionSize, weight: .medium))
+                        .foregroundStyle(Color.strainRed)
+                        .multilineTextAlignment(.center)
+
+                    Button {
+                        Task { await store.loadProducts() }
+                    } label: {
+                        Text("Retry")
+                            .font(.system(size: Typography.bodySize, weight: .bold))
+                            .foregroundStyle(Color.brandBlack)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: ComponentSize.buttonHeight)
+                            .background(Color.recoveryGreen)
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                    }
+                }
+
+            case .loaded:
+                Button {
+                    Task { await store.purchase() }
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        if store.purchaseState == .purchasing {
+                            ProgressView()
+                                .tint(Color.brandBlack)
+                        } else {
+                            Text("Unlock REPS Pro")
+                                .font(.system(size: Typography.bodySize, weight: .bold))
+
+                            if let product = store.proProduct {
+                                Text("— \(product.displayPrice)")
+                                    .font(.system(size: Typography.bodySize, weight: .bold))
+                            }
+                        }
+                    }
+                    .foregroundStyle(Color.brandBlack)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: ComponentSize.buttonHeight)
+                    .background(Color.recoveryGreen)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.standard))
+                }
+                .disabled(store.purchaseState == .purchasing)
             }
-            .disabled(store.purchaseState == .purchasing || store.proProduct == nil)
 
             Text("One-time purchase. No subscription.")
                 .font(.system(size: Typography.captionSize, weight: .medium))

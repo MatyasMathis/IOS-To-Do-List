@@ -22,6 +22,7 @@ final class StoreKitService: ObservableObject {
     @Published private(set) var isProUnlocked: Bool = false
     @Published private(set) var proProduct: Product?
     @Published private(set) var purchaseState: PurchaseState = .idle
+    @Published private(set) var productLoadState: ProductLoadState = .loading
 
     enum PurchaseState: Equatable {
         case idle
@@ -29,6 +30,12 @@ final class StoreKitService: ObservableObject {
         case purchased
         case failed(String)
         case restored
+    }
+
+    enum ProductLoadState: Equatable {
+        case loading
+        case loaded
+        case failed(String)
     }
 
     // MARK: - Constants
@@ -57,11 +64,19 @@ final class StoreKitService: ObservableObject {
     // MARK: - Load Products
 
     func loadProducts() async {
+        productLoadState = .loading
         do {
             let products = try await Product.products(for: [Self.proProductID])
-            proProduct = products.first
+            if let product = products.first {
+                proProduct = product
+                productLoadState = .loaded
+            } else {
+                productLoadState = .failed(
+                    "Product not found. Please ensure the in-app purchase is configured in App Store Connect."
+                )
+            }
         } catch {
-            // Product loading failed — will show unavailable state in paywall
+            productLoadState = .failed(error.localizedDescription)
         }
     }
 
