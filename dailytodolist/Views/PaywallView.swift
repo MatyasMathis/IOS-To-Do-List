@@ -6,6 +6,7 @@
 //  Design: Dark, athletic Whoop-inspired aesthetic with feature list and purchase CTA
 //
 
+import StoreKit
 import SwiftUI
 
 /// Paywall sheet presenting REPS Pro features and purchase button

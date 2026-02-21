@@ -6,6 +6,7 @@
 //  Features: Product fetching, purchasing, restore, entitlement checking
 //
 
+import Combine
 import StoreKit
 import SwiftUI
 
