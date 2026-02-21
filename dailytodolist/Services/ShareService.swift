@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Handles rendering SwiftUI views to images and presenting the system share sheet
 @MainActor

@@ -12,6 +12,7 @@
 //
 
 import SwiftUI
+import UIKit
 import SwiftData
 
 /// Sheet view for adding a new task with Whoop-inspired styling
