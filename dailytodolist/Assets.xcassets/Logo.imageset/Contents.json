@@ -1,15 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "logo.jpeg",
+      "filename" : "reps_logo_1024.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "filename" : "reps_logo_1024 1.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "reps_logo_1024 2.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
