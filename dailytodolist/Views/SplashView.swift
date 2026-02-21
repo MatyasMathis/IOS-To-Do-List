@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Animated splash screen shown on app launch
 struct SplashView: View {

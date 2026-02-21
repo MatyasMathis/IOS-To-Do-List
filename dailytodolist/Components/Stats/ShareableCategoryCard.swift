@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Branded 1080x1920 card rendered offscreen via ImageRenderer.
 ///

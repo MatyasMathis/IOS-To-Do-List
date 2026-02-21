@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Centralized haptic feedback service that respects user preferences
 ///

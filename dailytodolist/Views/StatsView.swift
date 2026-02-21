@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 import SwiftData
 
 /// Statistics view filtered by category
@@ -120,17 +121,15 @@ struct StatsView: View {
             .toolbarBackground(Color.brandBlack, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .sheet(isPresented: $showCalendarShare) {
-                if let category = selectedCategory {
-                    CalendarShareSheet(
-                        categoryName: category,
-                        categoryIcon: Color.categoryIcon(for: category, customCategories: customCategories),
-                        categoryColorHex: colorHex(for: category),
-                        completionDates: cachedCompletionDateSet,
-                        displayedMonth: displayedMonth,
-                        streak: cachedCurrentStreak,
-                        completionCount: completionCountForMonth
-                    )
-                }
+                CalendarShareSheet(
+                    categoryName: selectedCategory ?? "All Tasks",
+                    categoryIcon: selectedCategory.map { Color.categoryIcon(for: $0, customCategories: customCategories) } ?? "checkmark.circle.fill",
+                    categoryColorHex: selectedCategory.map { colorHex(for: $0) } ?? "2DD881",
+                    completionDates: cachedCompletionDateSet,
+                    displayedMonth: displayedMonth,
+                    streak: cachedCurrentStreak,
+                    completionCount: completionCountForMonth
+                )
             }
             .onAppear { recomputeStats() }
             .onChange(of: selectedCategory) { recomputeStats() }
@@ -203,8 +202,8 @@ struct StatsView: View {
                         accentColor: categoryColor
                     )
 
-                    // Share calendar button (pro feature) — only for specific categories
-                    if selectedCategory != nil && store.isProUnlocked {
+                    // Share calendar button (pro feature)
+                    if store.isProUnlocked {
                         Button {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()

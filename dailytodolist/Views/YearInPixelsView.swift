@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 import SwiftData
 
 /// Year in Pixels — a full-year heatmap of daily task completions

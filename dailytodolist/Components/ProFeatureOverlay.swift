@@ -6,7 +6,9 @@
 //  Design: Shows real content behind gaussian blur with elegant unlock CTA
 //
 
+import StoreKit
 import SwiftUI
+import UIKit
 
 /// Blurred overlay that gates premium content behind REPS Pro.
 ///

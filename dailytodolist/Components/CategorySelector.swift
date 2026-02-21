@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 import SwiftData
 
 // MARK: - Category Selector
